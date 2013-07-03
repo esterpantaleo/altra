@@ -1,0 +1,300 @@
+#!/bin/bash
+
+#**************************************************************************************************#  
+#            FILE:       run_altra                                                              
+#     DESCRIPTION:       Prepare input for altra.cpp                          
+#          AUTHOR:       Ester Pantaleo                                                         
+#         CREATED:       Sep 29, 2011        
+#**************************************************************************************************#  
+
+#================== FUNCTION ====================             
+#         NAME: absdir                                                    
+#  DESCRIPTION: This function returns the absolute path to the given path, i.e. the absolute    
+#               path if the argument is a directory, or the absolute basename otherwise.   
+#   ARGUMENT 1: path (a string)                          
+#================================================                               
+function absdir() {
+if [[ -n "$1" ]] ; then
+    if [[ -d $1 ]] ; then
+        pushd $1 2>&1 >/dev/null;
+        echo $PWD;
+        popd 2>&1 >/dev/null;
+    else
+        dname=`dirname $1`;
+        pushd ${dname} 2>&1 >/dev/null;
+        echo ${PWD};
+        popd 2>&1 >/dev/null;
+    fi
+fi
+}
+
+#-----------------------------------------------------------                    
+# Get the relative path of this script, use that to load the                         
+# utilities, and finally use the absdir function from the utilities to                    
+# transform the relative path to an absolute path.                                  
+#-----------------------------------------------------------   
+BASEDIR=`dirname ${BASH_SOURCE-$0}`
+BASEDIR=`absdir $BASEDIR`           
+
+utils=$BASEDIR"/utils.sh"
+utils_R=${BASEDIR}"/R/utils.R"
+utils_awk=$BASEDIR"/utils.awk"
+altra=$BASEDIR"/altra"
+altra_R=${BASEDIR}"/R/altra.R"
+breakpoints_R=${BASEDIR}"/R/breakpoints.R"
+output2summary="output2summary"
+source $utils 
+
+#--------------------------------------------------   
+# Set default arguments                              
+#--------------------------------------------------                
+#minimum intron length MIN_IN_LEN                                    
+MIN_IN_LEN=50 # depends on the mapping algorithm
+
+#minimum exon length MIN_EX_LEN        
+MIN_EX_LEN=10 # depends on the mapping algorithm     
+
+#maximum intron length MAX_IN_LEN
+MAX_IN_LEN=50000  # depends on the mapping algorithm                 
+
+MAX_EX_LEN=3000
+
+MC_STEPS=300000 #0
+
+MC_BURNIN=80000 #0
+
+MC_EQ=80000 #0
+
+MC_THIN=10 
+
+ANN_JUNC=1
+
+PERCENT_J=2
+
+DELTA_J=12
+
+MINIMUM_J=2
+
+genePrediction=1
+
+JOB_FOLDER="./out_altra/"    #when JOB_FOLDER is not specified use JOB_FOLDER_Default        
+
+pK=3
+
+nK=3
+
+VERBOSE=0
+
+scale_junction_count_by=1
+
+breakpoints=1
+
+JOB_ID=$RANDOM
+
+MU_E="-4.";
+
+VAR_E="1."; #0.53                                                                          
+
+SD_Q="2.";  #0.1                                                            
+
+VAR_L="49."; #1.?                                                                                     
+
+Cc="2."; #10 or 1                                                                             
+
+Aa="4.";
+
+Bb="1."; #prior on var_log_lambda: inv_gamma(Aa, Bb) ; hist(1/rgamma(5000,Aa,1/Bb))                  
+
+OVERHANG=9
+
+#----------------------------------------------------------------
+# Parse arguments
+#----------------------------------------------------------------
+if [[ $VERBOSE -eq 1 ]];then
+    echo Parsing arguments of $0...
+fi
+
+parseArgs "$@"
+
+#-----------------------------------------------------------                                        
+# Write GenePredInitialState    
+#-----------------------------------------------------------     
+# if intron length < $MIN_IN_LEN merge exons                                
+# remove transcripts that are shorter than the $RL                                  
+# if exon length < $MIN_EX_LEN remove exon; if number of removed exons < number of exons then print else don t print  
+# if genes overlapping $LOCUS extend further than $LOCUS cut them
+GenePredOut=$JOB_FOLDER"GenePredOut"
+GenePredInitialState=$JOB_FOLDER"GenePredInitialState"
+GenePredInFiltered=$JOB_FOLDER"GenePredInFiltered"
+GenePredInCut=$JOB_FOLDER"GenePredInCut"
+if [ $genePrediction -eq 2 ]; then
+    if [[ -z $GenePredIn ]];then
+        echo "ERROR: provide GenePred file with option -f" >&2
+	exit 1
+    fi
+fi
+
+if [ $genePrediction -eq 2 ]; then
+    if [[ ! -z $g_line ]];then
+	for l in `echo ${g_line//,/ }`;do
+	    cat $GenePredIn | sed -n -e "$l"p
+	done 
+    else
+	cat $GenePredIn
+    fi > $GenePredIn"_tmp"
+    genePredView $GenePredIn"_tmp" "filter" $MIN_IN_LEN $MIN_EX_LEN $RL > $GenePredInFiltered
+    genePredView $GenePredInFiltered $LOCUS "cut" > $GenePredInCut
+    cp $GenePredInCut $GenePredInitialState
+    cp $GenePredInitialState $GenePredOut
+    rm $GenePredIn"_tmp"
+else
+    # extract from the genome-wide annotation files transcripts that      
+    # (partially) overlap with the locus (remove identical transcripts                             
+    # in multiple annotations)
+    GenePredIn=$JOB_FOLDER"GenePredIn"
+    genePredView $GenePredReference $LOCUS "multiple_compressed" > $GenePredIn
+    genePredView $GenePredIn "filter" $MIN_IN_LEN $MIN_EX_LEN $RL > $GenePredInFiltered
+    genePredView $GenePredInFiltered $LOCUS "cut" > $GenePredInCut
+    #select $pK and $nK lines randomly from $GenePredInCut                           
+    select_lines_randomly $GenePredInCut > $GenePredInitialState
+fi
+
+if [ ! -s $GenePredInitialState ]; then
+    echo "ERROR: no annotated gene in locus" >&2
+    exit 1
+fi
+
+#-----------------------------------------------------------------------------------
+# Write JunctionsInFiltered, listCoordinate, listpos5, listpos3, listneg5, listneg3 ( + coverages and find breakpoints )
+#-----------------------------------------------------------------------------------
+Bed_v=( `regionToBed $LOCUS` )
+chr=${Bed_v[0]}
+locusStart=${Bed_v[1]}
+locusEnd=${Bed_v[2]}
+JunctionsIn="junctions.bed.gz"                                                                        
+JunctionsInFiltered=$JOB_FOLDER"junctionfile_after_filtering"
+JunctionsInBeforeFiltering=$JOB_FOLDER"junctionfile_before_filtering"
+coverages_file=$JOB_FOLDER"coverages"
+SSfile=$JOB_FOLDER"SSfile"
+SSfile_breakpoints=$SSfile"_breakpoints"
+SSfile_breakpoints_filtered=$SSfile_breakpoints"_filtered"
+
+write_JunctionsIn $LOCUS $JunctionsIn readfolders_v[@] readfolder_labels_v[@] > $JunctionsInBeforeFiltering
+filter_JunctionsIn $JunctionsInBeforeFiltering $PERCENT_J $MINIMUM_J > $JunctionsInFiltered
+j_is_pos=`cat $JunctionsInFiltered | awk 'BEGIN{j_is_pos=0} {if ($4=="+") j_is_pos=1} END{print j_is_pos}'`
+j_is_neg=`cat $JunctionsInFiltered | awk 'BEGIN{j_is_neg=0} {if ($4=="-") j_is_neg=1} END{print j_is_neg}'`
+if [[ ($j_is_pos -eq 1 && $pK -eq 0) || ($j_is_neg -eq 1 && $nK -eq 0) ]];then
+    echo "WARNING: genes on both strands are expressed but only genes on one strand are annotated" >&2
+fi
+BedOut=$JOB_FOLDER"BedOut"
+regionToBed $LOCUS > $BedOut
+for (( i=0;i<${#readfolder_labels_v[@]};i++ ));do
+    BamFile_long=${readfolders_v[$i]}"accepted_hits.bam";
+    BamFile=$JOB_FOLDER${readfolder_labels_v[$i]}".bam"
+    if [[ ! -e $BamFile_long ]]; then
+        echo "ERROR: bam file for ${readfolder_labels_v[$i]} does not exist" >&2
+        exit 1;
+    fi
+    (${SAMTOOLS} view -H $BamFile_long $LOCUS;
+            ${SAMTOOLS} view $BamFile_long $LOCUS | awk -v lS="$locusStart" -v lE="$locusEnd" -v rl="$RL" '
+            {               
+             if ($4 > lS){  
+                  if ($4 < lE - rl)
+                     print                                                                        
+             }
+            }') | ${SAMTOOLS} view -bhS - > $BamFile  
+    ${COVERAGEBED} -split -d -hist -abam $BamFile -b $BedOut | \
+        awk '{                                        
+           printf("%s ", $5)  
+        } 
+        END{
+           printf("\n")
+        }'
+done > $coverages_file
+rm $BedOut
+write_SSfile $GenePredInCut $JunctionsInFiltered > $SSfile
+if [[ $breakpoints -eq 1 ]];then
+    if (( $locusEnd - $locusStart < 100000 ));then
+        Rscript $breakpoints_R $chr $locusStart $coverages_file $j_is_pos $j_is_neg \
+                $MIN_EX_LEN $SSfile $SSfile_breakpoints $SSfile_breakpoints_filtered \
+	         $C $DELTA_J
+    fi
+    (cat $SSfile;
+        if [[ -e $SSfile_breakpoints_filtered ]]; then
+            cat $SSfile_breakpoints_filtered;
+            fi) | sort -r | \
+                sort -k 2,2 -k 3,3 -u -k 4,4n | \
+                sort > $SSfile"_tmp"
+    mv $SSfile"_tmp" $SSfile
+fi
+
+
+# from the set of splice sites found by the mapping method, annotated or found by FLLAT (and filtered)         
+# write_lists defines a set of coordinates (or equivalently intervals); each coordinate corresponds to a    
+# a positive splice site and/or a negative splice site (splice sites found by FLATT are saved as both          
+# positive and negative splice sites; the sign of splice sites found by the mapping method can be derived   
+# from the consensus splice sequence in the intron)
+write_lists $LOCUS $locusStart $locusEnd $SSfile
+
+#--------------------------------------------------------------------------------------
+#   run altra
+#--------------------------------------------------------------------------------------
+tic
+logFile=$JOB_FOLDER"log.out"
+llkOut=$JOB_FOLDER"llkOut"    
+echo ${BASEDIR}/altra C=$C RL=$RL listCoordinate=$listCoordinate listpos3=$listpos3 \
+    listpos5=$listpos5 listneg3=$listneg3 listneg5=$listneg5 \
+    MC_STEPS=$MC_STEPS MC_BURNIN=$MC_BURNIN MC_EQ=$MC_EQ MC_THIN=$MC_THIN \
+    genePrediction=$genePrediction genePredInitialState=$GenePredInitialState \
+    output_folder=$JOB_FOLDER chr=$chr MIN_EX_LEN=$MIN_EX_LEN MAX_EX_LEN=$MAX_EX_LEN\
+    min_in_len=$MIN_IN_LEN max_in_len=$MAX_IN_LEN scale_by=$scale_junction_count_by \
+    mu_e=$MU_E var_e=$VAR_E sd_q=$SD_Q var_l=$VAR_L c=$Cc a=$Aa b=$Bb sourcefile=$utils \
+    o2s=$output2summary
+#extract reads in locus from bam file and transform them in the reference coordinate basis       
+(for rr in ${readfolder_labels_v[@]}; do
+    echo "m"
+    ${SAMTOOLS} view $JOB_FOLDER$rr".bam" |\
+       awk -v _lC="$listCoordinate" -f $utils_awk --source ' 
+       BEGIN{C = split(_lC, lC_v, ",")}  
+       {sam2bitset(lC_v, C)}' 
+done;
+echo "e") | $altra $C $RL $listCoordinate $listpos3 $listpos5 \
+   $listneg3 $listneg5 $MC_STEPS $MC_BURNIN $MC_EQ $MC_THIN $genePrediction \
+   $GenePredInitialState $JOB_FOLDER $chr $MIN_EX_LEN $MAX_EX_LEN $MIN_IN_LEN \
+   $MAX_IN_LEN $scale_junction_count_by $MU_E $VAR_E $SD_Q $VAR_L $Cc $Aa $Bb \
+   $utils $output2summary >> $logFile
+
+#------------------------------------------------------------------------------------------
+# write ExprOut, similarityFile, timeFile 
+#------------------------------------------------------------------------------------------
+MC_output1=$JOB_FOLDER"MC_output1"
+ExprOut=$JOB_FOLDER"ExprOut"
+similarityFile=$JOB_FOLDER"similarity.txt"
+write_ExprOut $MC_output1 ${#readfolder_labels_v[@]} $GenePredOut > $ExprOut
+#for (( i=1; i<=`cat $GenePredOut | wc -l `; i++ )); do
+#    genePredSimilarity $GenePredOut $i $GenePredIn
+#done > $similarityFile
+
+#------------------------------------------------------------------------------------------
+# print time
+#------------------------------------------------------------------------------------------  
+tac
+timeFile=$JOB_FOLDER"timeFile"
+echo "time" `print_tic_tac | awk '{print $1/60" min"'}` > $timeFile
+
+#-------------------------------------------------------------------
+# Plot
+#------------------------------------------------------------------- 
+echo Rscript $altra_R $utils_R rf=$readfolder_labels RL=$RL OVERHANG=$OVERHANG C=$C \
+    listCoordinate=$listCoordinate jf=$JOB_FOLDER gin=$GenePredInCut go=$GenePredOut \
+    eo=$ExprOut llkOut=$llkOut jif=$JunctionsInFiltered sf=$SSfile_breakpoints_filtered \
+    coverages_file=$coverages_file lf=$list_loci_file ll=$list_loci_line
+try Rscript $altra_R $utils_R $readfolder_labels $RL $OVERHANG $C \
+    $listCoordinate $JOB_FOLDER $GenePredInCut $GenePredOut $ExprOut $llkOut \
+    $JunctionsInFiltered $SSfile_breakpoints_filtered $coverages_file $list_loci_file \
+    $list_loci_line
+
+for rr in ${readfolder_labels_v[@]}; do
+    rm $JOB_FOLDER$rr".bam"
+done
+rm $coverages_file

@@ -1,0 +1,187 @@
+#!/bin/bash
+
+#**************************************************************************************************#
+#            FILE:       run_sim_sum
+#     DESCRIPTION:       Simulate reads
+#          AUTHOR:       Ester Pantaleo
+#         CREATED:       Sep 29, 2011
+#        REQUIRES:       samtools, tabix, bgzip
+#**************************************************************************************************#
+
+usage(){
+    echo -e "\
+usage: $0 options
+       OPTIONS:
+       -o <string>                                         Set the name of the output folder
+       -r <reads1[,...,readsN]>                            A comma-separated list of headers that will name the folders containing
+                                                           the simulated bam file
+       -g <file>                                           Set the name of the GenePred file containing the gene prediction model
+       -L <chr:locusStart-locusEnd>                        A string with the name of the chromosome\":\"locusStart-locusEnd 
+       -l <int[,int,...]>                                  A comma-separated list of the lines in the GenePred file
+       -R <int>                                            Read length
+       -M <int>                                            Overhang used when mapping reads with junctions
+       -m <double[,double,…]:...:double[,double,…]         A \",\" separated list of the intensities for each individual,
+                                                           for each line in GenePred file
+    
+example: $0 -r ind1,ind2,ind3 -g sim_GenePred -L chr15:38567531-38644544 -l 1,2 -R 46 -M 9 -m 5.,3.:3.,1.:5.,6. -o /mnt/lustre/home/epantaleo/my_software/code_all/data/simulation/ENSG00000128891/
+example: sh test_sim_Y.sh -i /mnt/lustre/home/epantaleo/my_software/code_all/data/simulation/ENSG00000128891/ -o /mnt/lustre/home/epantaleo/my_software/code_all/data/simulation/ENSG00000128891/  -g g_line -p pK -K nK -h genepredreference -L Locus\n"
+
+}
+
+SAMTOOLS=samtools
+hash $SAMTOOLS 2>/dev/null || { echo >&2 "Requires $SAMTOOLS but it's not installed.  Aborting."; exit 1; }
+TABIX=tabix
+hash $TABIX 2>/dev/null || { echo >&2 "Requires $TABIX but it's not installed.  Aborting."; exit 1; }
+BGZIP=bgzip
+hash $BGZIP 2>/dev/null || { echo >&2 "Requires $BGZIP but it's not installed.  Aborting."; exit 1; }
+
+while getopts "ho:r:g:L:l:R:M:v:m:" OPTION
+do
+     case $OPTION in
+         h)
+             usage
+             exit 1
+             ;;
+         o) 
+	     OUTPUT_FOLDER=$OPTARG
+	     ;;
+	 r)
+	     readfolder_labels=$OPTARG
+	     ;;
+	 g)
+	     g_in=$OPTARG
+	     ;;
+         L) 
+	     LOCUS=$OPTARG
+             ;;
+         l)
+	     g_line=$OPTARG
+	     ;;
+         R)
+	     RL=$OPTARG
+	     ;;
+	 M)
+	     OVERHANG=$OPTARG
+	     ;;
+	 v)  
+	     VERBOSE=$OPTARG
+	     ;;
+	 m)
+	     lambdas=$OPTARG
+	     ;;
+    esac
+done
+
+
+
+
+#============== FUNCTION ===========================                            
+#         NAME:      simulate_data                                              
+#  DESCRIPTION:      simulate reads                                             
+#     REQUIRES:      samtools, tabix
+#===================================================                            
+simulate_data() {
+    # define variables
+    LOCUS_v=( `echo $LOCUS | tr ":" "\n" `)
+    chr=${LOCUS_v[0]}
+    interval=( `echo ${LOCUS_v[1]} | tr "-" "\n" `)
+    locusStart=${interval[0]}
+    locusEnd=${interval[1]}
+    lambdas_v=(`echo $lambdas | tr ":" "\n" `)
+    readfolder_labels_v=(`echo ${readfolder_labels//,/ }`)
+    N=${#readfolder_labels_v[@]}
+    if [[ ! -d $OUTPUT_FOLDER ]];then
+        mkdir $OUTPUT_FOLDER
+    fi
+
+
+    # generate bam files and bed files and index them
+    for (( i=0;i<$N;i++ ));do
+	readfolder=$OUTPUT_FOLDER${readfolder_labels_v[$i]}"/"
+	if [[ ! -d $readfolder ]];then
+	    mkdir $readfolder
+	fi
+	echo ./sim_sam g_in=$g_in g_line=$g_line readfolder=$readfolder lambdas=${lambdas_v[$i]} RL=$RL OVERHANG=$OVERHANG locusStart=$locusStart locusEnd=$locusEnd
+	command="./sim_sam g_in=$g_in g_line=$g_line readfolder=$readfolder lambdas=${lambdas_v[$i]} RL=$RL OVERHANG=$OVERHANG locusStart=$locusStart locusEnd=$locusEnd"
+	./sim_sam $g_in $g_line $readfolder ${lambdas_v[$i]} $RL $OVERHANG $locusStart $locusEnd
+	${SAMTOOLS} view -bSh $readfolder"accepted_hits.sam" > $readfolder"accepted_hits.unsorted.bam"
+	rm $readfolder"accepted_hits.sam"
+	${SAMTOOLS} sort $readfolder"accepted_hits.unsorted.bam" $readfolder"accepted_hits"
+	rm $readfolder"accepted_hits.unsorted.bam"
+	${SAMTOOLS} index $readfolder"accepted_hits.bam"
+	j_tmp=$readfolder"junctions_tmp.bed"
+	mv $readfolder"junctions.bed" $j_tmp
+	l=`cat $j_tmp | wc -l`
+	while [[ $l -ne 0 ]];do
+	    firstline=`head -1 $j_tmp`
+	    grepheader=`echo "$firstline" | awk -F $'\t' 'BEGIN {OFS = FS}{print $1,$2,$3,$4}'`
+	    SS5=`echo "$firstline" | awk '{print $3}'`
+	    SS3=`echo "$firstline" | awk '{print $4}'`
+	    strand=`echo "$firstline" | awk '{print $2}'`
+	    count=`grep "$grepheader" $j_tmp | awk 'BEGIN{count=0;}{count+=$5}END{print count}'`
+	    let S3=$SS3+$OVERHANG
+	    let S5=$SS5-$OVERHANG
+	    let SSd=$SS3-$SS5-1
+	    echo -e $chr"\t"$S5"\t"$S3"\t"JUNC"\t"$count"\t"$strand"\t"$S5"\t"$S3"\t255,0,0\t2\t"$OVERHANG","$OVERHANG"\t0,"$SSd >> $readfolder"junctions.bed"
+	    grep -v "$grepheader" $j_tmp > $j_tmp"2"
+	    mv $j_tmp"2" $j_tmp
+	    l=`cat $j_tmp | wc -l`
+	done
+	rm $j_tmp
+        cat $readfolder"junctions.bed" | sort -k1,1 -k2,2n -k3,3n > $readfolder"junctions.bed"
+	cat $readfolder"junctions.bed" | bgzip > $readfolder"junctions.bed.gz"
+        ${TABIX} -p bed $readfolder"junctions.bed.gz"
+	(echo "junctions simulated with $command"; cat $readfolder"junctions.bed") > $readfolder"junctions.bed_tmp"
+	mv $readfolder"junctions.bed_tmp" $readfolder"junctions.bed" 
+    done
+}
+
+########CHECK ARGUMENTS
+check_arguments() {
+    if [[ -z $OUTPUT_FOLDER ]]; then
+	echo "ERROR: specify output folder"
+	usage
+	exit 1
+    fi
+    if [[ -z $LOCUS ]];then
+	echo "ERROR: missing LOCUS"
+	usage
+	exit 1
+    fi
+    if [[ -z $g_in ]] || [[ -z $g_line ]];then
+	echo "ERROR: missing GenePred file or g_line"
+	usage
+	exit 1
+    fi
+    if [[ -z $lambdas ]];then
+	echo "ERROR: missing lambdas"
+        usage
+        exit 1
+    fi
+    if [[ -z $readfolder_labels ]];then
+        echo "ERROR: specify readfolder labels"
+        usage
+        exit 1
+    fi
+    if [[ -z $RL ]];then
+        echo "ERROR: specify read length"
+        usage
+        exit 1
+    fi
+    if [[ -z $OVERHANG ]];then
+        echo "ERROR: specify overhang length"
+        usage
+        exit 1
+    fi
+}
+
+
+
+#########RUN SIM_SAM.CPP
+check_arguments
+simulate_data 
+
+#cat $readfolder"junctions.bed" | sort -k1,1 -k2,2n -k3,3n | $BGZIP > $readfolder"junctions.bed.gz"
+#$TABIX -p bed $readfolder"junctions.bed.gz"
+
+

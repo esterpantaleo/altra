@@ -1,0 +1,62 @@
+altra: a Bayesian method for simultaneous transcript reconstruction and abundance estimation with RNA-Seq data in multiple samples.
+
+Usage: 
+run_altra -L <chr:locusStart-locusEnd> -r <folder1[,...,folderN]> -c <count1[,...,countN]> -a <int> -O <int>  -g <string> 
+Example: 
+run_altra -L chr13:19875805-19998012 -r ind1,ind2,ind3,ind4 -c 7749699,11630601,10614370,35456718 -d 0 -y 5 -a 46 -O 9 -g annotations/knownGene_hg18.txt.gz,annotations/ensembl_4_30.gz 
+
+Options:
+  -h, --help		Display the help and exit.
+  -V, --version		Output version information and exit.
+  -v, --verbose
+  -L, --locus		<chr:locusStart-locusEnd>	A string specifying the region: chromosome:locusStart-locusEnd; altra requires that the locus be sensibly specified.
+  -o, --out		<string>			Set the path to the output folder. Default output folder is ./out_altra/
+  -r, --read_folders	<folder1[,...,folderN]>		Set the path to the folders containing accepted_hits.bam and junctions.bed for each of the N samples; accepted_hits.bam should be indexed with samtools; junctions.bed should be indexed with tabix (see code_create_index_of_junction_bed_file.sh). From the bam files altra will extract reads that start in the locus (more precisely that start between the start of the locus and the end of the locus minus the read length); from the junctions.bed files altra will extract junctions whose 3' and 5' splice sites fall in the locus. The files accepted_hits.bam and junctions.bed are the standard output files of the mapping tool Tophat.
+  -R, --read_labels	<label1[,...,labelN]>		By default altra names the samples after the name of the folders containing the bam files; by providing this option altra will use the provided strings as labels for the N samples.
+  -c, --total_counts	<count1[,...,countN]>		A comma separated string with the total count of reads for each of the N samples.
+  -a, --read_length	<int>				The read length; all reads must have same length; altra will remove from the input GenePred file those transcripts that are shorter than the read length.
+  -O, --overhang	<int>				The overhang of the mapping method. Default value is 9.
+
+OPTIONS ON THE TRANSCRIPT MODEL
+By default altra simultaneously reconstructs the transcript model and estimates abundances (default option -G 1). In this case a (list) of (compressed) GenePred annotation files must be provided with option -g (see below for more details). Also in this case the number of transcripts in the transcript model must be set using options -d and -y followed by the number of transcripts on the positive and negative strand, pK and nK, respectively: altra will (randomly) select pK and nK transcripts from the GenePred annotations in the locus provided with option -g.
+By setting -G 2 altra can be used to only estimate abundances for a fixed transcript model; in this case a GenePred file must be specified with option -f and option -F can be used to specify which line should be used in the GenePred file provided with option -f (if option -F is not provided, altra will use all transcripts in the GenePred file).
+  -f, --genepred_file		<string>		File containing the input transcript model in GenePred format; altra will cut the annotated transcripts if they extend beyond the locus (the locus must be set with option -L).
+  -F, --genepred_line		<int1[,...,intG]>	A comma separated string of integers that specify which lines in the GenePred file provided with option -f should be used for the initialization.
+  -g, --genepred_annotation	<file1[...,fileG]	A comma separated list of the reference gene annotation files in (compressed gz) GenePred format; from these genome-wide annotation files altra will extract transcripts that (partially) overlap with the locus and will remove identical transcripts in multiple annotations. altra will cut the annotated transcripts if they extend beyond the locus (the locus must be set with option -L).
+  -G, --genepred_initialization	<default=1/2>		Reconstruct the transcript model(1); assume the transcript model is known and only estimate abundances(2).
+  -s, --minimum_exon_length	<int>			Minimum exon length: for each transcript in the GenePred file, if the lenght of an exon is less than the minimum exon length, altra will remove that exon. Default value is 10. If the annotated GenePred file contains an exon that is longer than the minimum exon length provided with option -s, then the value of this parameter will be progressively increased until it is larger than the annotated exon. The minimum exon length cannot be smaller than the overhang provided with option -O. 
+  -S, --maximum_exon_length	<int>			Maximum exon length. Default value is 3000.
+  -z, --minimum_intron_length	<int>			Minimum intron length: for each intron in the GenePred file, if the intron length is less than the minimum intron lenght (provided with option -z) altra will merge adjacent exons in the GenePred file. Default value is 50.
+  -Z, --maximum_intron_length	<int>			Maximum intron length. Default value is 50000
+  -d, --positiveK		<int>			Number of positive transcripts pK; if no transcripts are present on the positive strand in the GenePred files provided with option -g altra will set the number of positive transcripts to 0. Default value is 3.
+  -y, --negativeK		<int>			Number of negative transcripts nK; if no transcripts are present on the negative strand in the GenePred files provided with option -g altra will set the number of negative transcripts to 0. Default value is 3.
+
+OPTIONS ON JUNCTIONS AND BREAKPOINTS
+altra needs a list of positive splice sites to reconstruct transcripts on the positive strand and a list of negative splice sites to reconstruct transcripts on the negative strand (in altra a start and an end of a transcript are equivalent to a 3' and a 5' splice site, respectively).
+altra will extract the junctions contained in the junctions.bed file that fall in the specified locus; these junctions are junctions found by the mapping method. Also, altra will extract annotated junctions from the filtered GenePred file and will discover junctions using FLLat (option -e 0 will disable the use of FLLat). By using FLLat, altra will find potential 5' and 3' splice sites, and will save them both as positive and as negative 3' or 5' splice sits.
+If pK or nK is 0 and after filtering altra finds junctions on the positive (negative) strand then altra will print a warning.
+JUNCTIONS FILTERING
+From the set of junctions extracted from the mapped reads, altra will filter out junctions that have a frequency lower than PERCENT_J (provided with option -J) in all individuals and that have less than MINIMUM_J (provided with option -M) counts in each individual for all individuals.From the set of  5' and 3' splice sites (on the positive strand and on the negative strand) extracted from the filtered GenePred file altra will remove splice sites that are less than 3 nucleotides away from a 3' splice site (on the same strand) extracted from the mapped reads altra (same for a 5' splice site).The position of a potential splice site discovered by FLLat has a large error; for this reason, if a 3' splice site discovered by FLLat is within less than DELTA_J (provided with option -D) nucleotides from a 3' splice site extracted from the reads and/or annotated, altra will ignore it (same for a 5' splice site). Also if the distance between two adjacent 5' and 3' splice sites found by FLLat is less than the minimum exon length both splice sites will be discarded.
+
+  -j, --scale_junction_count_by	<int>			Multiply the count of spliced reads by scale_junction_count_by; this factor is only used when reconstructing the transcript model and is set back to 1 when inferring abundances. Default value is 1.
+  -J, --filter_junctions	<double>		Filter out junctions that have a frequency lower than PERCENT_J in all individuals (if the total number of junction reads -- summed over all N samples -- that map to a specific junction in a specific sample is less than a percentage PERCENTAGE_J of the total number of junction reads that map to all junctions in the specified locus then ignore that specific junction). Default value is 2.
+  -M, --minimum_junctions	<int>			Filter out junctions that have less than MINIMUM_J counts in each individual for all individuals. Default value is 2.
+  -e, --find_breakpoints	<0/default=1>			Use FLLat to find breakpoints (junctions) that are common to all samples (1); disable the use of FLLat- don't look for breakpoints (0).
+  -D, --distance_of_redundant_breakpoint	<int>	Ignore a splice sites discovered by FLLat if it is less than DELTA_J nucleotides away from an annotated splice site. Default value is 12.
+
+INTERNAL OPTIONS
+  -p, --MC_STEPS		<int>			Set the number of MCMC steps.
+  -n, --MC_BURNIN		<int>			Set the number of steps to be thrown as burn in.
+  -t, --MC_THIN			<int>			Set the thinning of the chain.
+  -q, --MC_EQ			<int>			Set the number of steps for final MCMC.
+  -l, --list_loci_line		<int>	
+  -b, --list_loci_file		<string>	
+
+
+INPUT AND OUTPUT FORMATS
+GenePred format: see http://genome.ucsc.edu/FAQ/FAQformat#format9 for a description of the GenePred format
+BED format: see http://genome.ucsc.edu/FAQ/FAQformat.html#format1
+BAM format: see http://genome.ucsc.edu/FAQ/FAQformat.html#format5.1 Note: reads that map with junctions must have the XS attribute tag as in Tophat output.
+
+summary.txt This file contains the list of explored transcript models (in a format internal to altra) with the posterior frequency of each transcript model. The function bitset2GenePred in utils.sh can be used to convert a line of summary.txt into a GenePred file with the transcript model.
+
