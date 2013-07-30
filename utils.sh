@@ -763,6 +763,78 @@ function write_lists(){
     fi
 }
 
+#IMPORTANT: if the 3rd and 4th arguments are provided this function is strictly looking at reads that start after locus_start and end before locus_end                                                         
+function bam2JunctionBed6(){
+    local _bamfile=$1
+    local _chr=$2
+    local _locus_start=$3
+    local _locus_end=$4
+
+    if [[ -z $_bamfile ]]; then
+        echo "ERROR: wrong number of arguments for function $FUNCNAME" >&2
+        exit 1
+    fi
+
+    if [[ -z $_locus_start ]] && [[ -z $_locus_end ]] && [[ -z $_chr ]]; then
+        _locus=""
+    elif [[ -z $_locus_start ]]; then
+        echo "ERROR: wrong number of arguments for function $FUNCNAME" >&2
+        exit 1
+    elif [[ -z $_locus_end ]]; then
+        echo "ERROR: wrong number of arguments for function $FUNCNAME" >&2
+        exit 1
+    elif [[ -z $_chr ]]; then
+        echo "ERROR: wrong number of arguments for function $FUNCNAME" >&2
+        exit 1
+    else
+        _locus=$_chr":"$_locus_start"-"$_locus_end
+    fi
+
+#flags 0x200 0x400 remove low quality and duplicates                                                    
+    $SAMTOOLS view -F 0x200 -F 0x400 $_bamfile $_locus | \
+        awk -v s="$_locus_start" -v n="$_locus_end" '                                                   
+        {if (!($6~/N/)) next; if (s!="") if (s>$4) next; if ($6~/[PSHX=*]/) next;                       
+             cigar_scalar=$6                                                                            
+             tophat_strand=$20                                                                          
+                                                                                                        
+             #get strand                                                                                
+             if (index(tophat_strand, "XS:A:")!=1){                                                     
+                for (i=12;i<=NF;i++){
+                   if (index($i, "XS:A:")==1){                                                          
+                      tophat_strand=$i                                                                  
+                      strand=substr(tophat_strand,length(tophat_strand),1)                              
+                      break                                                                             
+                   }                                                                                    
+                   strand="."                                                                           
+                }                                                                                       
+             }else                                                                                      
+             strand=substr(tophat_strand,length(tophat_strand),1)                                       
+                                                                                                        
+             gsub(/[MNID]/," & ",cigar_scalar)                                                          
+             c=split(cigar_scalar,cigar," ")                                                            
+             start=$4;                                                                                  
+             for (i=2;i<=c;i=i+2){                                                                      
+                if (cigar[i]=="M")                                                                      
+                   start=start+cigar[i-1]-1                                                             
+                else if (cigar[i]=="N"){                                                                
+                   end=start+cigar[i-1]+1                                                               
+                   if (n=="")                                                                           
+                      print $3,start,end,strand                                                         
+                   else if (end<=n)                                                                     
+                      print $3,start,end,strand                                                         
+                   start=end                                                                            
+                }else if (cigar[i]=="I")                                                                
+                   start=start-cigar[i-1]                                                               
+                else if (cigar[i]=="D")    
+                   start=start+cigar[i-1]                                                               
+             }                                                                                          
+        }' |  \
+        sort -k1,1 -k2,2n -k3,3n -k4,4 | \
+        uniq -c | \
+        awk 'BEGIN{OFS="\t"}{print $2,$3,$4,".",$1,$5}'
+}
+
+
 
 #============== FUNCTION ===========================                            
 #         NAME:      write_JunctionsIn 
@@ -771,77 +843,61 @@ function write_lists(){
 function write_JunctionsIn(){
     if [[ $VERBOSE -eq 1 ]];then
         echo command line: "$FUNCNAME $@" >&2
+        echo "Extracting splice sites from bam files" >&2
     fi
 
-    if [ -z $1 ] || [ -z $2 ] || [ -z $3 ] || [ -z $4 ]; then
+    if [ -z $1 ] || [ -z $2 ]; then
         echo "ERROR: incorrect number of arguments for function $FUNCNAME" >&2
         exit 1;
     fi
-
-    local _LOCUS=$1
-    local _j_in=$2
-    local -a _readfolders_v=("${!3}")
-    local -a _readfolder_labels_v=("${!4}")
+    local -a _readfiles_v=("${!1}")
+    local _chr=$2
+    local _locus_start=$3
+    local _locus_end=$4
 
     local _j_tmp=`mktemp`
     local _j_2tmp=`mktemp`
     local _j_3tmp=`mktemp`
     local _j_4tmp=`mktemp`
-    local _N=${#_readfolders_v[@]}
-   
-    local _LOCUS_v=( `regionToBed $_LOCUS` )
-    local _locusStart=${_LOCUS_v[1]}
-    local _locusEnd=${_LOCUS_v[2]}
-    if [[ $VERBOSE -eq 1 ]]; then
-	echo "Processing bed junctionfiles..." >&2
-    fi
+    local _N=${#_readfiles_v[@]}
 
     for ((_i=0;_i<$_N;_i++)); do
-	_my_j_in=${_readfolders_v[$_i]}$_j_in
-
-	if [ ! -s $_my_j_in ] || [ ! -e $_my_j_in ];then
-            echo "WARNING: file $_my_j_in does not exist or is empty" >&2
-            continue
-        fi
-	${TABIX} $_my_j_in $_LOCUS | awk -v lS="$_locusStart" -v lE="$_locusEnd" '{     
-            split($11, field11, ",");                                 
-            if ($2 + field11[1] > lS && $3 - field11[2] + 1 < lE )      
-               print $1, $2 + field11[1], $3 - field11[2] + 1, $6, $5;   
-            }' > $_j_tmp
-
+        #_readfile_name_v[$_i]=`basename ${_readfiles_v[$_i]}`                                       
+        bam2JunctionBed6 ${_readfiles_v[$_i]} $_chr $_locus_start $_locus_end | \
+            awk 'BEGIN{OFS="\t"}{print $1,$2,$3,$6,$5}' > $_j_tmp
         if [ $_i -eq 0 ]; then
-	    mv $_j_tmp $_j_3tmp
-	else
+            mv $_j_tmp $_j_3tmp
+        else
             for ((_ll=`cat $_j_3tmp | wc -l`;_ll>0;_ll--));do
-                firstline=`head -1 $_j_3tmp`
-                grepheader=`echo "$firstline" | awk '{print $1,$2,$3,$4}'`
-                count=`grep "$grepheader" $_j_tmp | awk '{print $5}'`
-                if [ "$count" = "" ]; then count=0; fi
-                echo $firstline $count >> $_j_2tmp
-                grep -v "$grepheader" $_j_tmp > $_j_4tmp; mv $_j_4tmp $_j_tmp
-		tail -n +2 $_j_3tmp > $_j_4tmp; mv $_j_4tmp $_j_3tmp
+                _firstline=`head -1 $_j_3tmp`
+                _grepheader=`echo "$_firstline" | awk 'BEGIN{OFS="\t"}{print $1,$2,$3,$4}'`
+                _count=`grep "$_grepheader" $_j_tmp | awk '{print $5}'`
+                if [ "$_count" = "" ]; then _count=0; fi
+                echo $_firstline $_count >> $_j_2tmp
+                grep -v "$_grepheader" $_j_tmp > $_j_4tmp; mv $_j_4tmp $_j_tmp
+                tail -n +2 $_j_3tmp > $_j_4tmp; mv $_j_4tmp $_j_3tmp
             done
             if [ -s $_j_2tmp ]; then
                 mv $_j_2tmp $_j_3tmp
             fi
             if [ -s $_j_tmp ];then
-                cat $_j_tmp | awk -v I="$_i" '{
-                   printf("%s %s %s %s ", $1, $2, $3, $4);                
-                   for (i = 1; i < I + 1; i ++) 
-                      printf("0 ");
-                   printf("%s\n", $5);
+                cat $_j_tmp | awk -v I="$_i" '{                                                      
+                   printf("%s %s %s %s ", $1, $2, $3, $4);                                           
+                   for (i = 1; i < I + 1; i ++)                                                      
+                      printf("0 ");   
+                   printf("%s\n", $5);                                                               
                 }' >> $_j_3tmp
                 rm $_j_tmp
             fi
         fi
     done
-    echo ${_readfolder_labels_v[@]}
-    cat $_j_3tmp | awk -v n="$_N" '{
-       out = "";
-       for (i = NF - 4; i < n; i ++) 
-          out = out" 0";
-       printf("%s %s\n", $0, out)
-    }' 
+    echo chr 5ss 3ss strand ${_readfiles_v[@]}
+    cat $_j_3tmp | awk -v n="$_N" '{                                                                 
+       out = ""                                                                                      
+       for (i = NF - 4; i < n; i ++)                                                                 
+          out = out" 0"                                                                              
+       printf("%s %s\n", $0, out)                                                                    
+    }'
     if [ -e $_j_tmp ];then
         rm $_j_tmp
     fi
@@ -1035,7 +1091,7 @@ function help () {
     msg+="  -v, --verbose\n"
     msg+="  -L, --locus\t\t<chr:locusStart-locusEnd>\tA string specifying the region: chromosome:locusStart-locusEnd; altra requires that the locus be sensibly specified.\n"
     msg+="  -o, --out\t\t<string>\t\t\tSet the path to the output folder. Default output folder is ./out_altra/\n"
-    msg+="  -r, --read_folders\t<folder1[,...,folderN]>\t\tSet the path to the folders containing accepted_hits.bam and junctions.bed for each of the N samples; accepted_hits.bam should be indexed with samtools; junctions.bed should be indexed with tabix (see code_create_index_of_junction_bed_file.sh). From the bam files altra will extract reads that start in the locus (more precisely that start between the start of the locus and the end of the locus minus the read length); from the junctions.bed files altra will extract junctions whose 3' and 5' splice sites fall in the locus. The files accepted_hits.bam and junctions.bed are the standard output files of the mapping tool Tophat.\n"
+    msg+="  -r, --read_folders\t<folder1[,...,folderN]>\t\tSet the path to the folders containing accepted_hits.bam for each of the N samples; accepted_hits.bam should be indexed with samtools. From the bam files altra will extract reads that start in the locus (more precisely that start between the start of the locus and the end of the locus minus the read length).\n"
     msg+="  -R, --read_labels\t<label1[,...,labelN]>\t\tBy default altra names the samples after the name of the folders containing the bam files; by providing this option altra will use the provided strings as labels for the N samples.\n"
     msg+="  -c, --total_counts\t<count1[,...,countN]>\t\tA comma separated string with the total count of reads for each of the N samples.\n"
     msg+="  -a, --read_length\t<int>\t\t\t\tThe read length; all reads must have same length; altra will remove from the input GenePred file those transcripts that are shorter than the read length.\n"
@@ -1057,10 +1113,10 @@ function help () {
         
     msg+="\nOPTIONS ON JUNCTIONS AND BREAKPOINTS\n"
     msg+="altra needs a list of positive splice sites to reconstruct transcripts on the positive strand and a list of negative splice sites to reconstruct transcripts on the negative strand (in altra a start and an end of a transcript are equivalent to a 3' and a 5' splice site, respectively).\n"
-    msg+="altra will extract the junctions contained in the junctions.bed file that fall in the specified locus; these junctions are junctions found by the mapping method. Also, altra will extract annotated junctions from the filtered GenePred file and will discover junctions using FLLat (option -e 0 will disable the use of FLLat). By using FLLat, altra will find potential 5' and 3' splice sites, and will save them both as positive and as negative 3' or 5' splice sits.\n"
+    msg+="altra will extract from the bam files the junctions found by the mapping method. Also, altra will extract annotated junctions from the filtered GenePred file and will discover junctions using FLLat (option -e 0 will disable the use of FLLat). By using FLLat, altra will find potential 5' and 3' splice sites, and will save them both as positive and as negative 3' or 5' splice sits.\n"
     msg+="If pK or nK is 0 and after filtering altra finds junctions on the positive (negative) strand then altra will print a warning.\n"
     msg+="JUNCTIONS FILTERING\n"
-    msg+="From the set of junctions extracted from the mapped reads, altra will filter out junctions that have a frequency lower than PERCENT_J (provided with option -J) in all individuals and that have less than MINIMUM_J (provided with option -M) counts in each individual for all individuals."
+    msg+="From the set of junctions found in spliced reads, altra will filter out junctions that have less than MINIMUM_J (provided with option -M) counts in each individual for all individuals if they have a frequency lower than PERCENT_J (provided with option -J) in all individuals.\n"
     msg+="From the set of  5' and 3' splice sites (on the positive strand and on the negative strand) extracted from the filtered GenePred file altra will remove splice sites that are less than 3 nucleotides away from a 3' splice site (on the same strand) extracted from the mapped reads altra (same for a 5' splice site)."
     msg+="The position of a potential splice site discovered by FLLat has a large error; for this reason, if a 3' splice site discovered by FLLat is within less than DELTA_J (provided with option -D) nucleotides from a 3' splice site extracted from the reads and/or annotated, altra will ignore it (same for a 5' splice site). Also if the distance between two adjacent 5' and 3' splice sites found by FLLat is less than the minimum exon length both splice sites will be discarded.\n"
     msg+="\n"
