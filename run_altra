@@ -137,7 +137,7 @@ fi
 if [ $genePrediction -eq 2 ]; then
     if [[ ! -z $g_line ]];then
 	for l in `echo ${g_line//,/ }`;do
-	    cat $GenePredIn | sed -n -e "$l"p
+	    sed -n -e "$l"p < $GenePredIn
 	done 
     else
 	cat $GenePredIn
@@ -171,7 +171,7 @@ Bed_v=( `regionToBed $LOCUS` )
 chr=${Bed_v[0]}
 locusStart=${Bed_v[1]}
 locusEnd=${Bed_v[2]}
-JunctionsIn="junctions.bed.gz"                                                                        
+
 JunctionsInFiltered=$JOB_FOLDER"junctionfile_after_filtering"
 JunctionsInBeforeFiltering=$JOB_FOLDER"junctionfile_before_filtering"
 coverages_file=$JOB_FOLDER"coverages"
@@ -179,7 +179,11 @@ SSfile=$JOB_FOLDER"SSfile"
 SSfile_breakpoints=$SSfile"_breakpoints"
 SSfile_breakpoints_filtered=$SSfile_breakpoints"_filtered"
 
-write_JunctionsIn $LOCUS $JunctionsIn readfolders_v[@] readfolder_labels_v[@] > $JunctionsInBeforeFiltering
+readfiles=""
+for i in ${readfolders_v[@]}; do
+    readfiles=( ${readfiles[@]} $i"/accepted_hits.bam" )
+done
+write_JunctionsIn readfiles[@] $chr $locusStart $locusEnd > $JunctionsInBeforeFiltering
 filter_JunctionsIn $JunctionsInBeforeFiltering $PERCENT_J $MINIMUM_J > $JunctionsInFiltered
 j_is_pos=`cat $JunctionsInFiltered | awk 'BEGIN{j_is_pos=0} {if ($4=="+") j_is_pos=1} END{print j_is_pos}'`
 j_is_neg=`cat $JunctionsInFiltered | awk 'BEGIN{j_is_neg=0} {if ($4=="-") j_is_neg=1} END{print j_is_neg}'`
@@ -189,7 +193,7 @@ fi
 BedOut=$JOB_FOLDER"BedOut"
 regionToBed $LOCUS > $BedOut
 for (( i=0;i<${#readfolder_labels_v[@]};i++ ));do
-    BamFile_long=${readfolders_v[$i]}"accepted_hits.bam";
+    BamFile_long=${readfolders_v[$i]}"accepted_hits.bam"
     BamFile=$JOB_FOLDER${readfolder_labels_v[$i]}".bam"
     if [[ ! -e $BamFile_long ]]; then
         echo "ERROR: bam file for ${readfolder_labels_v[$i]} does not exist" >&2

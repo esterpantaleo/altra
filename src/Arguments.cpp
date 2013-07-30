@@ -1,55 +1,28 @@
-#ifndef ARGUMENTS_H
-#define ARGUMENTS_H
+#include "Arguments.h"
 
-#include "utils.h"
+Arguments::~Arguments(){
+  outdatallk.close();
+  outdata1.close();
+  gsl_matrix_free(Z);
+  gsl_matrix_free(VAR_q);
+  gsl_matrix_free(VAR_l);
+  gsl_rng_free(rnd);
+}
 
-class Arguments{
- public:
-  //lC=number of elements of listCoordinate                       
-  unsigned int RL, K, powK, pK, nK, N, MC_STEPS, MC_BURNIN, MC_EQ, MC_THIN, lC, genePrediction, MIN_EX_LEN, MAX_EX_LEN_DIV_2, MIN_IN_LEN, MAX_IN_LEN;
-  unsigned long int rSeed;
-  //LC=length of the region, Csum=sum of the C, parameters of the priors on log_lambda and epsilon   
-  double LC, sumC, alphaSS, Csum, mu_e, var_e, sd_e, sd_q, var_l, ar_e, ar_l, scale_junction_count_by, NORMALIZATION, a, b, c;
-  string genePredFile, chr, genePredOut, utils, output2summary, run_output2summary, outfilellk, outfile1, argv3, argv14;
-  vector<string> my_types;
-  ostringstream buffer;
-  ofstream outdatallk, outdata1;
-  vector<unsigned int> L, pos3, pos5, neg3, neg5;
-  vector<double> C, log_C, listCoordinate;
-  gsl_matrix* Z;//a matrix with rows the binary form of z (ulong to dynamic_bitset from z=0 to z=A.powK ) 
-  gsl_matrix* VAR_q;
-  gsl_matrix* VAR_l;
-  //random seed                                 
-  gsl_rng* rnd;
-  const gsl_rng_type* Tor;
+void Arguments::clear_ar(){
+  ar_l = 0.;
+  ar_e = 0.;
+}
 
-  Arguments(int argc,const char* argv[]);
-  ~Arguments(){
-    outdatallk.close();
-    outdata1.close();
-    gsl_matrix_free(Z);
-    gsl_matrix_free(VAR_q);
-    gsl_matrix_free(VAR_l);
-    gsl_rng_free(rnd);
-  }
-  void set0(unsigned int &my_pK, unsigned int &my_nK);
-  void set(unsigned int &my_pK, unsigned int &my_nK);
-  void set2(unsigned int &my_pK, unsigned int &my_nK);
-  
-  void clear_ar(){
-    ar_l = 0.;
-    ar_e = 0.;
-  }
+void Arguments::print_ar(const unsigned int &num_steps){
+  cout<<"ACCEPTANCE RATIO FOR LAMBDA=                    " << ar_l << "/" << N * num_steps  << "=" << ar_l / (double) (N * num_steps) << "\n";
+  cout <<"ACCEPTANCE RATIO FOR EPSILON=                  " << ar_e << "/" << num_steps << "=" <<ar_e / (double) num_steps << "\n";
+}
 
-  void print_ar(const unsigned int &num_steps){
-    cout<<"ACCEPTANCE RATIO FOR LAMBDA=                    " << ar_l << "/" << N * num_steps  << "=" << ar_l / (double) (N * num_steps) << "\n";
-    cout <<"ACCEPTANCE RATIO FOR EPSILON=                  " << ar_e << "/" << num_steps << "=" <<ar_e / (double) num_steps << "\n";
-  }
-  void print_ar_my_update(const unsigned int &num_steps){
-    cout<<"ACCEPTANCE RATIO FOR LAMBDA=                    " << ar_l << "/" << K * N * num_steps  << "=" << ar_l / (double) (K * N * num_steps) << "\n";
-    cout <<"ACCEPTANCE RATIO FOR EPSILON=                  " << ar_e << "/" << num_steps << "=" <<ar_e / (double) num_steps << "\n";
-  }
-};
+void Arguments::print_ar_my_update(const unsigned int &num_steps){
+  cout<<"ACCEPTANCE RATIO FOR LAMBDA=                    " << ar_l << "/" << K * N * num_steps  << "=" << ar_l / (double) (K * N * num_steps) << "\n";
+  cout <<"ACCEPTANCE RATIO FOR EPSILON=                  " << ar_e << "/" << num_steps << "=" <<ar_e / (double) num_steps << "\n";
+}
 
 Arguments::Arguments(int argc, const char* argv[]){  
   if (argc != 30){
@@ -158,7 +131,6 @@ void Arguments::set0(unsigned int &my_pK, unsigned int &my_nK){
   gsl_matrix_set_identity(VAR_l);
   gsl_matrix_scale(VAR_l, var_l);
 }
-
  
 void Arguments::set(unsigned int &my_pK, unsigned int &my_nK){
   set0(my_pK, my_nK);
@@ -168,19 +140,18 @@ void Arguments::set(unsigned int &my_pK, unsigned int &my_nK){
   run_output2summary += utils;
   run_output2summary += "\";";
   run_output2summary += output2summary;
-  run_output2summary += "(";
+  run_output2summary += " ";
   run_output2summary += argv14;
-  run_output2summary += ",";
+  run_output2summary += " ";
   run_output2summary += ItoA(PRINTED_STEPS);
-  run_output2summary += ",";
+  run_output2summary += " ";
   run_output2summary += ItoA(pK);
-  run_output2summary += ",";
+  run_output2summary += " ";
   run_output2summary += ItoA(nK);
-  run_output2summary += ",";
+  run_output2summary += " ";
   run_output2summary += chr;
-  run_output2summary += ",";
+  run_output2summary += " ";
   run_output2summary += argv3;
-  run_output2summary += ")";
 }
 
 void Arguments::set2(unsigned int &my_pK, unsigned int &my_nK){
@@ -190,5 +161,4 @@ void Arguments::set2(unsigned int &my_pK, unsigned int &my_nK){
 
   set0(my_pK, my_nK);
 }
-    
-#endif //ARGUMENTS_H 
+

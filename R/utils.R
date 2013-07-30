@@ -41,85 +41,85 @@ plotCoordinates = function(listCoordinate, plotStart, plotEnd, cex.axis=1){
 }
 
 plotGenePred = function(GenePredOut, GenePredIn=NULL, plotStart, plotEnd, is_xaxis=1, title=NULL, Expr_v=NULL, listCoordinate=NULL, cex.axis=1){
-          # get data
-	  if (!is.null(GenePredIn)){
-	       InTranscripts  <- readTable(GenePredIn)
-	       nrIn           <- nrow(InTranscripts)
-          }
-	  if (!file.info(GenePredOut)$size == 0){
-	  	  OutTranscripts <- readTable(GenePredOut)
-	  	  nrOut          <- nrow(OutTranscripts)
-          	  plot("NA"                     ,
-               	  axes="F"                 ,
-               	  yaxt="n"                 ,
-               	  main=title               ,
-               	  xlim=c(plotStart,plotEnd),
-               	  ylim=c(0,1)              ,
-               	  xlab="Position (Mb)"     ,
-               	  ylab=""                  ,
-               	  font.main=1               )
-
-          	  #plot axis
-          	  if (is_xaxis==1){
-		     if (!is.null(listCoordinate)){
-		     	axis(1,
-	     		     at=listCoordinate,
-	     		     lab=0:(length(listCoordinate)-1),
-	     		     cex.axis=cex.axis)
-	                #par(tck=tck)
-	                abline(v=listCoordinate)
-                     }else{
-		        tck=axTicks(1)
-                        axis(1            ,
-                             at=tck,
-                             lab=format(tck/1000000))
-                     }
-                  }
-
-          	  for (i in 1:nrOut){#set colors
-                    if (OutTranscripts[i,3] == "-") fill_col="red" else fill_col="blue"
-                    border_col=fill_col;
-
-                    if (nrOut==1){y=0.5} else y=(nrOut+1-i)*(1/(nrOut+1))
-             
-                    rect(OutTranscripts[i, 4],
-                         y-0.001             ,
-                         OutTranscripts[i, 5],
-                         y+0.001             ,
-                         col="black"         ,
-                         border="black"       )
-
-                    if (length(Expr_v) != 0) 
-                              text(x=OutTranscripts[i,5]     ,
-                                   y=y+0.07                  ,
-                                   labels=signif(Expr_v[i],1),
-                                   cex=0.7                   ,
-                                   pos=3                     ,
-                                   offset=0.1                 )
-                    trans <- get_exons_start_end(OutTranscripts[i,])	      
-		    ll=length(trans$exst)
-		    
-                    if (!is.null(GenePredIn)){
-		       for (j in 1:nrIn){
-		              intrans <- get_exons_start_end(InTranscripts[j,])
-                              mm = length(intrans$exst)
-                              if (ll == mm){
-                                        if (all(trans$exst == intrans$exst) & all(trans$exen == intrans$exen)){
-                                                  border_col="black";
-                                                  break
-                                        }
-                              }
-                        }
-                     }
-                     for (j in 1:ll) 
-                          rect(trans$exst[j]     ,
-                               y-0.02            ,
-                               trans$exen[j]     ,
-                               y+0.02            ,
-                               col=fill_col    ,
-                               border=border_col )
-                   }
+                                        # get data
+    if (!is.null(GenePredIn)){
+        InTranscripts  <- readTable(GenePredIn)
+        nrIn           <- nrow(InTranscripts)
+    }
+    if (!file.info(GenePredOut)$size == 0){
+        OutTranscripts <- readTable(GenePredOut)
+        nrOut          <- nrow(OutTranscripts)
+        plot("NA"                     ,
+             axes="F"                 ,
+             yaxt="n"                 ,
+             main=title               ,
+             xlim=c(plotStart,plotEnd),
+             ylim=c(0,1)              ,
+             xlab="Position (Mb)"     ,
+             ylab=""                  ,
+             font.main=1               )
+        
+                                        #plot axis
+        if (is_xaxis==1){
+            if (!is.null(listCoordinate)){
+                axis(1,
+                     at=listCoordinate,
+                     lab=0:(length(listCoordinate)-1),
+                     cex.axis=cex.axis)
+                                        #par(tck=tck)
+                abline(v=listCoordinate)
+            }else{
+                tck=axTicks(1)
+                axis(1            ,
+                     at=tck,
+                     lab=format(tck/1000000))
             }
+        }
+        
+        for (i in 1:nrOut){#set colors
+            if (OutTranscripts[i,3] == "-") fill_col="red" else fill_col="blue"
+            border_col=fill_col;
+            
+            if (nrOut==1){y=0.5} else y=(nrOut+1-i)*(1/(nrOut+1))
+            
+            rect(OutTranscripts[i, 4],
+                 y-0.001             ,
+                 OutTranscripts[i, 5],
+                 y+0.001             ,
+                 col="black"         ,
+                 border="black"       )
+            
+            if (length(Expr_v) != 0) 
+                text(x=OutTranscripts[i,5]     ,
+                     y=y+0.07                  ,
+                     labels=signif(Expr_v[i],1),
+                     cex=0.7                   ,
+                     pos=3                     ,
+                     offset=0.1                 )
+            trans <- get_exons_start_end(OutTranscripts[i,])	      
+            ll=length(trans$exst)
+            
+            if (!is.null(GenePredIn)){
+                for (j in 1:nrIn){
+                    intrans <- get_exons_start_end(InTranscripts[j,])
+                    mm = length(intrans$exst)
+                    if (ll == mm){
+                        if (all(trans$exst == intrans$exst) & all(trans$exen == intrans$exen)){
+                            border_col="black";
+                            break
+                        }
+                    }
+                }
+            }
+            for (j in 1:ll) 
+                rect(trans$exst[j]     ,
+                     y-0.02            ,
+                     trans$exen[j]     ,
+                     y+0.02            ,
+                     col=fill_col    ,
+                     border=border_col )
+        }
+    }
 }
 
 plotListLociLine = function(locusStart, locusEnd, my_file, my_line){
