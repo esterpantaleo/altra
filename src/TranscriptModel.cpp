@@ -147,7 +147,6 @@ TranscriptModel::TranscriptModel(string &genePredFile, allReads &reads, Argument
   posCenters.init(genePredFile, A);
   negCenters.init(genePredFile, A);
   
-  //cout<<"negCenters.K="<<negCenters.K<<"\n";
   //set K, A.K, A.pK, A.nK, A.powK, Z                                            
   A.set(posCenters.K, negCenters.K);
   K = A.K;
@@ -197,7 +196,7 @@ TranscriptModel::TranscriptModel(string &genePredFile, Centers &old_posCenters, 
   setX(reads, A);
 }
 
-Move * TranscriptModel::draw_move(ModifiedCenter &modifiedCenter, Arguments &A){//***********************************************
+Move * TranscriptModel::draw_move(ModifiedCenter &modifiedCenter, Arguments &A){
   //draw type of move//center tt    
   //only depends on the center c and on wether or not it is used by transcript t                    
   //if transcript = transcripts[t] and centers[c] = c:    
@@ -213,29 +212,23 @@ Move * TranscriptModel::draw_move(ModifiedCenter &modifiedCenter, Arguments &A){
     u = gsl_rng_uniform(A.rnd);
     if (u > p_c){
       if ((center -> is_used_proposed[modifiedCenter.t]) == 0){
-	///////cout<<"center -> is_used_proposed[modifiedCenter.t]) == 0\n";
 	return new NullMove;
       }else{
-	//cout<<"ProposeRemoveCenter\n";
 	return new ProposeRemoveCenter;
       }
     }else{
       if ((center -> is_used_proposed[modifiedCenter.t]) == 1){
 	if ((center -> ss3Pointers.size) + (center -> ss5Pointers.size) > 2){
 	  if (gsl_rng_uniform(A.rnd) < (double) ((center -> ss3Pointers.size) - 1) / (double) ((center -> ss3Pointers.size) + (center -> ss5Pointers.size) - 2)){
-	      //cout << "ProposeChangeSS3\n";
 	    return new ProposeChangeSS3;
 	  }else{
-	    //cout << "ProposeChangeSS5\n";
 	    return new ProposeChangeSS5;
 	  }
 	}
       }else{
-	//cout<<"ProposeAddCenter\n";
 	return new ProposeAddCenter;
       }
       }
-    //
   } else if (p2t < 0.05)
 	   return new ProposeSwap;
     else
@@ -339,7 +332,7 @@ void TranscriptModel::propose_update(unsigned int &t1, allReads &reads, gsl_vect
   Move *move = draw_move(modifiedCenter, A);
   move -> propose(modifiedCenter, A);
   delete move;
-  /////////////////////////////////////////////////////////////////      
+
   if (K > 1){
     if (u > 0.7){
       unsigned int t2 = gsl_rng_uniform_int(A.rnd, K - 1);

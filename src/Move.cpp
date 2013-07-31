@@ -38,8 +38,6 @@ void Move::proposeChangeSS(ModifiedCenter &modCenter, SS* &my_ss, SSpointers & s
   SS* s_current = my_ss;
   
   my_ss = centers -> v.at(modCenter.c).draw_SS_from_posterior(ss, A);
-  /////////////////cout<<"current="<<s_current->c<<"\n";
-  ////////////////cout<<"new="<<my_ss->c<<"\n";
   if (s_current != my_ss){//not accepted yet 
     (my_ss -> n_proposed) += 1;
     (s_current -> n_proposed) -= 1;
@@ -51,8 +49,6 @@ void Move::proposeChangeSS(ModifiedCenter &modCenter, SS* &my_ss, SSpointers & s
   }
 }
 
-//modCenter.c, 0
-//modCenter.c, modCenter.c
 void Move::proposeSR(unsigned int &t1, unsigned int &c1, unsigned int c2, Arguments &A){
   //if proposing a recombination of all centers you are proposing to just swap the two transcripts 
   //which is essentially a null move
@@ -62,10 +58,10 @@ void Move::proposeSR(unsigned int &t1, unsigned int &c1, unsigned int c2, Argume
   bool are_same, is_same;
   //sample a transcript t2 uniformly in [0,K-1] where K is the number of transcripts
   //if t2==t1 then take the K-th transcript
-  unsigned int one_different = 0, t2 = gsl_rng_uniform_int(A.rnd, (centers -> K) - 1);//!!!!!!!!!
+  unsigned int one_different = 0, t2 = gsl_rng_uniform_int(A.rnd, (centers -> K) - 1);
   
-  if (t2 == t1)//!!!!!!                                                           
-    t2 = (centers -> K) - 1;//!!!!!!!!!!                            
+  if (t2 == t1)
+    t2 = (centers -> K) - 1;
   for (unsigned int cc = c2; cc <= c1; cc ++){//if one of them is different (is_same==0) then they are different (are_same=0)
     are_same = 1;
     is_same = swap(centers -> v.at(cc).v3_proposed, t1, t2);
@@ -107,8 +103,6 @@ void ProposeAddCenter::propose(ModifiedCenter &modCenter, Arguments &A){
   SS *s3 = centers -> v.at(modCenter.c).draw_SS_from_posterior(centers -> v[modCenter.c].ss3Pointers, A);
   s3 -> n_proposed += 1;
   s5 -> n_proposed += 1;
-  //cout<<"s5->c "<<s5->c<<", ";
-  //cout<<"s3->c "<<s3->c<<"\n";
   
   centers -> v[modCenter.c].n_proposed += 1;
   centers -> v[modCenter.c].is_used_proposed.at(modCenter.t) = 1;

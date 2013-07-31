@@ -4,8 +4,9 @@ LFLAGS = -lz -lgsl -lgslcblas -llapack -lboost_filesystem
 LIBS = -L/usr/local/lib/
 OBJS = src/*.o
 CC = g++
+BIN = $HOME/bin
 
-altra: src/altra.o
+src/altra_src: src/altra.o
 	$(CC) src/altra.o src/expression.o src/TranscriptModel.o src/likelihood.o src/Reads.o src/ProposedTranscript.o src/Move.o src/Centers.o src/Transcript.o src/Center.o src/Arguments.o src/utils.o -o $@ ${LFLAGS} ${LIBS} 
 	rm -f *~ ${OBJS}
 
@@ -45,12 +46,15 @@ src/Arguments.o: src/Arguments.cpp src/utils.o
 clean:
 	rm -f *~ ${OBJS} 
 
-sim_sam: src/sim_sam.o src/utils.o
+src/sim_sam_src: src/sim_sam.o src/utils.o
 	$(CC) $^ -o $@ ${LFLAGS} ${LIBS}
 
-src/sim_sam: src/sim_sam.cpp src/utils.o
+src/sim_sam.o: src/sim_sam.cpp src/utils.o
 	$(CC) -c $< -o $@ ${LFLAGS} ${LIBS}
 	rm -f *~ ${OBJS}
 
 src/utils.o: src/utils.cpp
 	$(CC) -c $< -o $@
+
+install: src/altra_src src/sim_sam_src
+	cp scripts/altra src/altra_src src/sim_sam_src $(BIN)

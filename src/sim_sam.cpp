@@ -123,10 +123,6 @@ int main(int argc, const char* argv[]){
 		read_v.push_back(read);
 		rest -= read;
 	      }
-	      //for (unsigned int jj=0;jj<read_v.size();jj++)
-	      //	cout<<read_v[jj]<<",";
-	      //cout<<"\n";
-	      //cout<<"rest="<<rest<<"\n";
 	      if (rest > 0) //the reads would extend over the end of the transcript; the read could not be emitted by transcript k 
 		break;
 	      //if read overhang < M don't print read
