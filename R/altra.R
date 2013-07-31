@@ -21,7 +21,6 @@ breakpoints_file   <- args[13]
 coverages_file     <- args[14]
 ListLociFile       <- args[15]
 ListLociLine       <- args[16]
-
 source(source_file)
 
 #*************************************************************************
@@ -32,13 +31,12 @@ source(source_file)
 N                  <- length(readfile_labels_v)
 locusStart         <- listCoordinate[1] + 0.5;
 locusEnd           <- listCoordinate[length(listCoordinate)]-0.5
-individualExprOut  <- as.matrix(readTableNumbers(ExprFile),byrow=TRUE)
+individualExprOut  <- as.matrix(readTableNumbers(ExprFile), byrow=TRUE)
 colExp             <- ncol(individualExprOut)
 individualExprOut  <- as.matrix(individualExprOut[,seq(1, colExp, 2)],nrow=N,ncol=colExp/2)
 NORM               <- sum(C) / N
 individualExprOut  <- individualExprOut * C / NORM 
-if (N==1) ExprAverage <- individualExprOut else ExprAverage  <- colMeans(individualExprOut)
-
+ifelse(N==1, ExprAverage <- individualExprOut, ExprAverage <- colMeans(individualExprOut))
 
 #*************************************************************************
 #
