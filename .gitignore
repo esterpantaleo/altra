@@ -1,4 +1,4 @@
-./analysis/
 *~
-altra
-sim_sam
+*.o
+src/altra
+src/sim_sam

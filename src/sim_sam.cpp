@@ -1,7 +1,6 @@
 #include "utils.h"
 
 string my_SamFile = "accepted_hits.sam";
-string my_JunctionFile = "junctions.bed";
 
 
 int main(int argc, const char* argv[]){
@@ -28,11 +27,11 @@ int main(int argc, const char* argv[]){
   unsigned int locusStart = atoi(argv[7]), locusEnd = atoi(argv[8]), tl, RL = atoi(argv[5]), M = atoi(argv[6]), \
     N = 1, K, Y, E, line = 0, MaxEx, read, sum;
   int cc = 0, rest;
-  string chr, GenePredLine, GenePredFile = argv[1], strand, s1, s2, s(RL, 'I'), SamFile = argv[3], JunctionFile = argv[3], junction_line;
+  string chr, GenePredLine, GenePredFile = argv[1], strand, s1, s2, s(RL, 'I'), SamFile = argv[3];
   vector<string> GenePredToken;
   vector<unsigned int> g_line = i_tokenize(argv[2], ",", true), read_v, counter;
   vector<double> lambda = f_tokenize(argv[4], ",", true);
-  ofstream SamFileOut, JunctionFileOut;
+  ofstream SamFileOut;
   ifstream ifs(GenePredFile.c_str());
 
   //check arguments
@@ -48,9 +47,7 @@ int main(int argc, const char* argv[]){
 
   //set file names
   SamFile += my_SamFile;
-  JunctionFile += my_JunctionFile;
   SamFileOut.open(SamFile.c_str());
-  JunctionFileOut.open(JunctionFile.c_str());
 
   //genePred file is in the 0-based coordinate system while sam file is in the 1-based coordinate system
   while (getline(ifs, GenePredLine)){
@@ -154,17 +151,6 @@ int main(int argc, const char* argv[]){
      
 	      }
 	    }
-
-	    //print to junctionfile
-	    sum = 0; 
-	    for (unsigned int jj = 0; jj < counter.size(); jj ++)
-	      sum += counter[jj]; 
-	    if (sum != 0){
-	      for (unsigned int jj = 0; jj < E - j - 1; jj ++){
-		if (counter[jj] != 0)
-		  JunctionFileOut << chr << "\t" << strand << "\t" << ExEn[jj+j] << "\t" << ExSt[jj + j + 1] << "\t" << counter[jj] << "\n";
-	      }
-	    }
 	  }
         }
       }
@@ -177,7 +163,6 @@ int main(int argc, const char* argv[]){
   ifs.close();
   ifs.clear();
   SamFileOut.close();
-  JunctionFileOut.close();
   gsl_rng_free(rnd);
   
   return 0;
