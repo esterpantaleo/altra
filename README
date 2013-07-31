@@ -1,0 +1,32 @@
+altra: a Bayesian method for simultaneous transcript reconstruction and abundance estimation with RNA-Seq data in multiple samples
+==================================================================================================================================
+
+This directory contains altra, a package implementing a Bayesian method
+for simultaneous transcript reconstruction and abundance estimation with 
+RNA-Seq data in multiple samples
+
+altra is free software, you can redistribute it and/or modify it under
+the terms of the GNU General Public License.
+
+The GNU General Public License does not permit this software to be
+redistributed in proprietary programs.
+
+This library is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+gsl, boost dynamic_bitset, bedtools and samtools must be installed
+
+Installation
+============
+
+make all
+make test
+
+Usage
+=====
+
+To print the usage run altra with option -h:
+
+altra -h
+
