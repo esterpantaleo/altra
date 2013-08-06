@@ -26,8 +26,24 @@
 
 #
 
+function absdir() {
+if [[ -n "$1" ]] ; then
+    if [[ -d $1 ]] ; then
+        pushd $1 2>&1 >/dev/null;
+        echo $PWD;
+        popd 2>&1 >/dev/null;
+    else
+        dname=`dirname $1`;
+        pushd ${dname} 2>&1 >/dev/null;
+        echo ${PWD};
+        popd 2>&1 >/dev/null;
+    fi
+fi
+}
 
-JOB_FOLDER="../data/"
+BASEDIR=`dirname ${BASH_SOURCE-$0}`
+BASEDIR=`absdir $BASEDIR`
+JOB_FOLDER=${BASEDIR}"/../data/"
 GenePredToSim=$JOB_FOLDER"/GenePredToSim"
 lambdas=2.,.8:.8,2.
 LOCUS=chr11:448267-491000
