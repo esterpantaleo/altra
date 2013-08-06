@@ -22,8 +22,8 @@ Installation
 
 #cd into the package folder
 make all
-#put scripts/sim_sam and sscripts/altra in your path
 make check
+#put folder "scripts" in your PATH
 
 Usage
 =====

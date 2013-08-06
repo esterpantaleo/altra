@@ -55,7 +55,7 @@ OVERHANG=9
 read_labels=ind1,ind2
 NORM=1,1
 
-${BASEDIR}"../scripts/"sim_sam -r $read_labels -g $GenePredToSim -L $LOCUS -l $line -R $RL -M $OVERHANG -m $lambdas -o $JOB_FOLDER
+${BASEDIR}"/../scripts/"sim_sam -r $read_labels -g $GenePredToSim -L $LOCUS -l $line -R $RL -M $OVERHANG -m $lambdas -o $JOB_FOLDER
 
 GenePredRef=$JOB_FOLDER"ensGene_e62_hg19.GenePred.gz"
 
