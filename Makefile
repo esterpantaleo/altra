@@ -62,6 +62,6 @@ src/utils.o: src/utils.cpp
 #install: altra
 #	cp altra $(BIN)
 
-test: all
+check: all
 	./test/test.sh >& test/test.log
 	@echo "see test/test.log"
