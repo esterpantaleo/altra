@@ -59,4 +59,4 @@ ${BASEDIR}"/../scripts/"sim_sam -r $read_labels -g $GenePredToSim -L $LOCUS -l $
 
 GenePredRef=$JOB_FOLDER"ensGene_e62_hg19.GenePred.gz"
 
-altra -L $LOCUS -o $JOB_FOLDER -r $JOB_FOLDER/ind1/,$JOB_FOLDER/ind2/ -R $read_labels -c $NORM -a $RL -O $OVERHANG -g $GenePredRef -d $pK -y $nK -p 4000 -n 1000 -q 1000 -e 0
+${BASEDIR}"/../scripts/"altra -L $LOCUS -o $JOB_FOLDER -r $JOB_FOLDER/ind1/,$JOB_FOLDER/ind2/ -R $read_labels -c $NORM -a $RL -O $OVERHANG -g $GenePredRef -d $pK -y $nK -p 4000 -n 1000 -q 1000 -e 0
