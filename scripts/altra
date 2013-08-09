@@ -35,6 +35,14 @@
 #         CREATED:       Sep 29, 2011        
 #******************************************************************************************#  
 
+INTERSECT=intersectBed
+hash $INTERSECT 2>/dev/null || { echo >&2 "bedtools $INTERSECT is required but not installed. Aborting."; exit 1; }
+COVERAGEBED=coverageBed
+hash $COVERAGEBED 2>/dev/null || { echo >&2 "bedtools  $COVERAGEBED is required but not installed. Aborting."; exit 1; }
+SAMTOOLS=samtools
+hash $SAMTOOLS 2>/dev/null || { echo >&2 "$SAMTOOLS is required but not installed. Aborting."; exit 1; }
+
+
 #================== FUNCTION ============================================================== 
 #         NAME: absdir                                                    
 #  DESCRIPTION: This function returns the absolute path to the given path, i.e. the absolute 

@@ -64,4 +64,5 @@ src/utils.o: src/utils.cpp
 
 check: all
 	./test/test.sh >& test/test.log
+	rm -r data/test/ data/ind*
 	@echo "see test/test.log"

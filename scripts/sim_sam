@@ -33,7 +33,7 @@
 #     DESCRIPTION:       Simulate reads
 #          AUTHOR:       Ester Pantaleo
 #         CREATED:       Sep 29, 2011
-#        REQUIRES:       samtools, tabix, bgzip
+#        REQUIRES:       samtools
 #**************************************************************************************************#
 
 
@@ -59,8 +59,7 @@ fi
 }
 
 #-------------------------------------------------------------------------------------------        
-#   Get the relative path of this script, use that to load the                                      
-#   utilities, and finally use the absdir function from the utilities to                           
+#   Get the relative path of this script                           
 #   transform the relative path to an absolute path.                                                
 #-------------------------------------------------------------------------------------------          
 BASEDIR=`dirname ${BASH_SOURCE-$0}`
@@ -70,23 +69,28 @@ sim_sam=$BASEDIR"/../src/sim_sam"
 
 
 
-usage(){
+help(){
     echo -e "\
+sim_sam generates simulated bam files.
+sim_sam generates reads of a specific length (specified by option -R) for a set of individuals as if they were emitted by a list of transcripts 
+(the list of transcript contained in the GenePred file specified with option -g; specific lines in this file can be selected using option -l) 
+in a region specified with option -L. The intensity of expression for each sample must be specified with option -m.
+
 usage: $0 options
        OPTIONS:
-       -o <string>                                         Set the name of the output folder
+       -o <string>                                         Specify the name of the output folder
        -r <reads1[,...,readsN]>                            A comma-separated list of headers that will name the folders containing
                                                            the simulated bam file
-       -g <file>                                           Set the name of the GenePred file containing the gene prediction model
+       -g <file>                                           Specify the name of the GenePred file containing the gene prediction model
        -L <chr:locusStart-locusEnd>                        A string with the name of the chromosome\":\"locusStart-locusEnd 
        -l <int[,int,...]>                                  A comma-separated list of the lines in the GenePred file
        -R <int>                                            Read length
        -M <int>                                            Overhang used when mapping reads with junctions
        -m <double[,double,…]:...:double[,double,…]         A \",\" separated list of the intensities for each individual,
                                                            for each line in GenePred file
-    
-example: $0 -r ind1,ind2,ind3 -g sim_GenePred -L chr15:38567531-38644544 -l 1,2 -R 46 -M 9 -m 5.,3.:3.,1.:5.,6. -o /mnt/lustre/home/epantaleo/my_software/code_all/data/simulation/ENSG00000128891/
-example: sh test_sim_Y.sh -i /mnt/lustre/home/epantaleo/my_software/code_all/data/simulation/ENSG00000128891/ -o /mnt/lustre/home/epantaleo/my_software/code_all/data/simulation/ENSG00000128891/  -g g_line -p pK -K nK -h genepredreference -L Locus\n"
+       -h                                                  Print help and exit
+
+example: $0 -r ind1,ind2,ind3 -g ./GenePredFile -L chr15:38567531-38644544 -l 1,2 -R 46 -M 9 -m 5.,3.:3.,1.:5.,6. -o ./my_output_folder"
 
 }
 
@@ -97,7 +101,7 @@ while getopts "ho:r:g:L:l:R:M:v:m:" OPTION
 do
      case $OPTION in
          h)
-             usage
+             help
              exit 1
              ;;
          o) 
@@ -136,7 +140,7 @@ done
 #============== FUNCTION ===========================                            
 #         NAME:      simulate_data                                              
 #  DESCRIPTION:      simulate reads                                             
-#     REQUIRES:      samtools, tabix
+#     REQUIRES:      samtools
 #===================================================                            
 simulate_data() {
     # define variables

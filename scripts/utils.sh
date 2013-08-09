@@ -26,23 +26,13 @@
 
 #
 
-INTERSECT=intersectBed
-hash $INTERSECT 2>/dev/null || { echo >&2 "bedtools $INTERSECT is required but not installed. Aborting."; exit 1; }
-MERGE=mergeBed
-hash $MERGE 2>/dev/null || { echo >&2 "bedtools $MERGE is required but not installed. Aborting."; exit 1; }
-COVERAGEBED=coverageBed
-hash $COVERAGEBED 2>/dev/null || { echo >&2 "bedtools  $COVERAGEBED is required but not installed. Aborting."; exit 1; }
-SAMTOOLS=samtools
-hash $SAMTOOLS 2>/dev/null || { echo >&2 "$SAMTOOLS is required but not installed. Aborting."; exit 1; }
-TABIX=tabix
-hash $TABIX 2>/dev/null || { echo >&2 "$TABIX is required but not installed. Aborting."; exit 1; }
 
-#================== FUNCTION ===================================================================
-#         NAME: absdir
-#  DESCRIPTION: This function returns the absolute path to the given path, i.e. the absolute
-#               path if the argument is a directory, or the absolute basename otherwise.
-#   ARGUMENT 1: absdir <path>
-#===============================================================================================
+#================== FUNCTION ============================================================== 
+#         NAME: absdir                                                    
+#  DESCRIPTION: This function returns the absolute path to the given path, i.e. the absolute 
+#               path if the argument is a directory, or the absolute basename otherwise.   
+#   ARGUMENT 1: path (a string)                          
+#==========================================================================================
 function absdir() {
 if [[ -n "$1" ]] ; then
     if [[ -d $1 ]] ; then
@@ -57,9 +47,17 @@ if [[ -n "$1" ]] ; then
     fi
 fi
 }
+
+
+#-------------------------------------------------------------------------------------------
+#   Get the relative path of this script, use that to load the                         
+#   utilities, and finally use the absdir function from the utilities to                    
+#   transform the relative path to an absolute path.                                  
+#-------------------------------------------------------------------------------------------
 BASEDIR=`dirname ${BASH_SOURCE-$0}`
-BASEDIR=`absdir $BASEDIR`
-utils_awk=${BASEDIR}/utils.awk
+BASEDIR=`absdir $BASEDIR`           
+utils_awk=$BASEDIR"/utils.awk"
+
 
 #============= FUNCTION =========================             
 #         NAME:     try  
@@ -1085,7 +1083,7 @@ function output2summary(){
 }
 
 function version () {
-    msg="$0 0.1\n"
+    msg="$0 1.0\n"
     msg+="\n"
     msg+="Copyright (C) 2012 E. Pantaleo\n"
     msg+="License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n"

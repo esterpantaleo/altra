@@ -1,7 +1,7 @@
 if (!"FLLat" %in% installed.packages())
    stop("R package FLLat is required; istall FLLat using install.packages(\"FLLat\")\n")
 
-library("FLLat")
+require("FLLat")
 
 #===========================================================================
 # get arguments
