@@ -1,6 +1,5 @@
 altra: a Bayesian method for simultaneous transcript reconstruction and abundance estimation with RNA-Seq data in multiple samples
-==================================================================================================================================
-
+==============================================================================
 This directory contains altra, a package implementing a Bayesian method
 for simultaneous transcript reconstruction and abundance estimation with 
 RNA-Seq data in multiple samples

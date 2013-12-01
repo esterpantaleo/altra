@@ -27,9 +27,6 @@ source(source_file)
 #     set variables
 #
 #************************************************************************
-N                  <- length(readfile_labels_v)
-locusStart         <- listCoordinate[1] + 0.5;
-locusEnd           <- listCoordinate[length(listCoordinate)]-0.5
 individualExprOut  <- as.matrix(readTableNumbers(ExprFile), byrow=TRUE)
 colExp             <- ncol(individualExprOut)
 individualExprOut  <- as.matrix(individualExprOut[,seq(1, colExp, 2)],nrow=N,ncol=colExp/2)
