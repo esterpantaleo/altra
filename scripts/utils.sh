@@ -451,7 +451,6 @@ function select_lines_randomly(){
 	fi
     fi
 }
-
  
 #============== FUNCTION ===========================                            
 #         NAME:      write_SSfile  

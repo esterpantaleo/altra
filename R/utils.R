@@ -26,24 +26,6 @@ get_exons_start_end <- function(transcript){
     return(list(exst=exst, exen=exen))
 }
 
-plotCoordinates <- function(listCoordinate, plotStart, plotEnd, cex.axis=1){
-    plot("NA",
-         axes="F",
-         yaxt="n",
-         xlim=c(plotStart,plotEnd),
-         ylim=c(0,1),
-         xlab="Coordinates",
-         ylab="",
-         font.main=1)
-    
-    tck=listCoordinate
-    tcklab=0:(length(listCoordinate)-1)
-    axis(1,
-         at=tck,
-         lab= tcklab,
-         cex.axis=cex.axis)
-}
-
 plotGenePred <- function(GenePredOut, GenePredIn=NULL, plotStart=NULL, plotEnd=NULL, is_xaxis=1, title=NULL, Expr_v=NULL, listCoordinate=NULL, cex.axis=1){
                                         # get data
     if (!is.null(GenePredIn)){
@@ -211,19 +193,6 @@ plotCov <- function(individualCoverages, locusStart, locusEnd, my_title){
     plotMax <- max(individualCoverages)
     plot(locusStart:(locusStart + l - 1),
          individualCoverages,
-         lwd=0.1,
-         col="black",
-         font.main=1,
-         main=my_title,
-         axes="F",
-         type="h",
-         xlab = "",
-         ylab = "",
-         xlim=range(c(locusStart, locusStart + l - 1)),
-         ylim=c(0, plotMax))
-    axis(2, pos=locusStart)
-    axis(1, pos=0)
-}
 
 plotCoverage <- function(GenePredOut, individualExprOut, locusStart, locusEnd, RL, M, my_title, individualCoverages){	
     l       <- length(individualCoverages)
@@ -250,7 +219,6 @@ plotCoverageFromBam <- function(bamfile, chr, locusStart, locusEnd, my_title){
     individualCoverages <- system(paste0("cat ", chr, ":", locusStart, "-", locusEnd, " | coverageBed split -d -hist -abam ", bamfile, "-b stdin | awk '{printf(\"%s\",$5)} END{printf(\"\n\")}'"), intern=TRUE)
     plotCov(individualCoverages, locusStart, locusEnd, my_title)
 }
-
 
 
                                         #============= FUNCTION =======================================================================================  

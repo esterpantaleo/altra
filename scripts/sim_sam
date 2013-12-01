@@ -1,0 +1,220 @@
+#!/bin/bash
+
+# \file sim_sam
+#
+
+# Copyright (C) 2012-2013 Ester Pantaleo
+
+
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+
+
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+
+
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+
+#
+
+
+#**************************************************************************************************#
+#            FILE:       sim_sum
+#     DESCRIPTION:       Simulate reads
+#          AUTHOR:       Ester Pantaleo
+#         CREATED:       Sep 29, 2011
+#        REQUIRES:       samtools
+#**************************************************************************************************#
+
+
+#================== FUNCTION ==============================================================                        
+#         NAME: absdir                                                   
+#  DESCRIPTION: This function returns the absolute path to the given path, i.e. the absolute       
+#               path if the argument is a directory, or the absolute basename otherwise.           
+#   ARGUMENT 1: path (a string)                                                                 
+#==========================================================================================        
+function absdir() {
+if [[ -n "$1" ]] ; then
+    if [[ -d $1 ]] ; then
+        pushd $1 2>&1 >/dev/null;
+        echo $PWD;
+        popd 2>&1 >/dev/null;
+    else
+        dname=`dirname $1`;
+        pushd ${dname} 2>&1 >/dev/null;
+        echo ${PWD};
+        popd 2>&1 >/dev/null;
+    fi
+fi
+}
+
+#-------------------------------------------------------------------------------------------        
+#   Get the relative path of this script                           
+#   transform the relative path to an absolute path.                                                
+#-------------------------------------------------------------------------------------------          
+BASEDIR=`dirname ${BASH_SOURCE-$0}`
+BASEDIR=`absdir $BASEDIR`
+
+sim_sam=$BASEDIR"/../src/sim_sam"
+
+
+
+help(){
+    echo -e "\
+sim_sam generates simulated bam files.
+sim_sam generates reads of a specific length (specified by option -R) for a set of individuals as if they were emitted by a list of transcripts 
+(the list of transcript contained in the GenePred file specified with option -g; specific lines in this file can be selected using option -l) 
+in a region specified with option -L. The intensity of expression for each sample must be specified with option -m.
+
+usage: $0 options
+       OPTIONS:
+       -o <string>                                         Specify the name of the output folder
+       -r <reads1[,...,readsN]>                            A comma-separated list of headers that will name the folders containing
+                                                           the simulated bam file
+       -g <file>                                           Specify the name of the GenePred file containing the gene prediction model
+       -L <chr:locusStart-locusEnd>                        A string with the name of the chromosome\":\"locusStart-locusEnd 
+       -l <int[,int,...]>                                  A comma-separated list of the lines in the GenePred file
+       -R <int>                                            Read length
+       -M <int>                                            Overhang used when mapping reads with junctions
+       -m <double[,double,…]:...:double[,double,…]         A \",\" separated list of the intensities for each individual,
+                                                           for each line in GenePred file
+       -h                                                  Print help and exit
+
+example: $0 -r ind1,ind2,ind3 -g ./GenePredFile -L chr15:38567531-38644544 -l 1,2 -R 46 -M 9 -m 5.,3.:3.,1.:5.,6. -o ./my_output_folder"
+
+}
+
+SAMTOOLS=samtools
+hash $SAMTOOLS 2>/dev/null || { echo >&2 "Requires $SAMTOOLS but it's not installed.  Aborting."; exit 1; }
+
+while getopts "ho:r:g:L:l:R:M:v:m:" OPTION
+do
+     case $OPTION in
+         h)
+             help
+             exit 1
+             ;;
+         o) 
+	     OUTPUT_FOLDER=$OPTARG
+	     ;;
+	 r)
+	     readfolder_labels=$OPTARG
+	     ;;
+	 g)
+	     g_in=$OPTARG
+	     ;;
+         L) 
+	     LOCUS=$OPTARG
+             ;;
+         l)
+	     g_line=$OPTARG
+	     ;;
+         R)
+	     RL=$OPTARG
+	     ;;
+	 M)
+	     OVERHANG=$OPTARG
+	     ;;
+	 v)  
+	     VERBOSE=$OPTARG
+	     ;;
+	 m)
+	     lambdas=$OPTARG
+	     ;;
+    esac
+done
+
+
+
+
+#============== FUNCTION ===========================                            
+#         NAME:      simulate_data                                              
+#  DESCRIPTION:      simulate reads                                             
+#     REQUIRES:      samtools
+#===================================================                            
+simulate_data() {
+    # define variables
+    LOCUS_v=( `echo $LOCUS | tr ":" "\n" `)
+    chr=${LOCUS_v[0]}
+    interval=( `echo ${LOCUS_v[1]} | tr "-" "\n" `)
+    locusStart=${interval[0]}
+    locusEnd=${interval[1]}
+    lambdas_v=(`echo $lambdas | tr ":" "\n" `)
+    readfolder_labels_v=(`echo ${readfolder_labels//,/ }`)
+    N=${#readfolder_labels_v[@]}
+    if [[ ! -d $OUTPUT_FOLDER ]];then
+        mkdir $OUTPUT_FOLDER
+    fi
+
+
+    # generate bam files and bed files and index them
+    for (( i=0;i<$N;i++ ));do
+	readfolder=$OUTPUT_FOLDER${readfolder_labels_v[$i]}"/"
+	if [[ ! -d $readfolder ]];then
+	    mkdir $readfolder
+	fi
+	echo $sim_sam g_in=$g_in g_line=$g_line readfolder=$readfolder lambdas=${lambdas_v[$i]} RL=$RL OVERHANG=$OVERHANG locusStart=$locusStart locusEnd=$locusEnd
+	command="$sim_sam $g_in $g_line $readfolder ${lambdas_v[$i]} $RL $OVERHANG $locusStart $locusEnd"
+	$sim_sam $g_in $g_line $readfolder ${lambdas_v[$i]} $RL $OVERHANG $locusStart $locusEnd
+	${SAMTOOLS} view -bSh $readfolder"accepted_hits.sam" | ${SAMTOOLS} sort - $readfolder"accepted_hits"
+	rm $readfolder"accepted_hits.sam"
+	${SAMTOOLS} index $readfolder"accepted_hits.bam"
+    done
+}
+
+########CHECK ARGUMENTS
+check_arguments() {
+    if [[ -z $OUTPUT_FOLDER ]]; then
+	echo "ERROR: specify output folder"
+	usage
+	exit 1
+    fi
+    if [[ -z $LOCUS ]];then
+	echo "ERROR: missing LOCUS"
+	usage
+	exit 1
+    fi
+    if [[ -z $g_in ]] || [[ -z $g_line ]];then
+	echo "ERROR: missing GenePred file or g_line"
+	usage
+	exit 1
+    fi
+    if [[ -z $lambdas ]];then
+	echo "ERROR: missing lambdas"
+        usage
+        exit 1
+    fi
+    if [[ -z $readfolder_labels ]];then
+        echo "ERROR: specify readfolder labels"
+        usage
+        exit 1
+    fi
+    if [[ -z $RL ]];then
+        echo "ERROR: specify read length"
+        usage
+        exit 1
+    fi
+    if [[ -z $OVERHANG ]];then
+        echo "ERROR: specify overhang length"
+        usage
+        exit 1
+    fi
+}
+
+
+
+#########RUN SIM_SAM.CPP
+check_arguments
+simulate_data 
+
+

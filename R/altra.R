@@ -27,6 +27,9 @@ source(source_file)
 #     set variables
 #
 #************************************************************************
+N                  <- length(readfile_labels_v)
+locusStart         <- listCoordinate[1] + 0.5;
+locusEnd           <- listCoordinate[length(listCoordinate)]-0.5
 individualExprOut  <- as.matrix(readTableNumbers(ExprFile), byrow=TRUE)
 colExp             <- ncol(individualExprOut)
 individualExprOut  <- as.matrix(individualExprOut[,seq(1, colExp, 2)],nrow=N,ncol=colExp/2)
@@ -45,7 +48,6 @@ par(mar=c(3,3,3,3), mfrow=c(2,1), oma=c(3,1,1,1))
 
 plotGenePred(GenePredOut=GenePredOut, GenePredIn=GenePredIn, plotStart=locusStart, plotEnd=locusEnd, Expr_v=ExprAverage)
 plotGenePred(GenePredOut=GenePredIn, GenePredIn=GenePredIn, plotStart=locusStart, plotEnd=locusEnd)
-#plotCoordinates(listCoordinate, plotStart=locusStart, plotEnd=locusEnd, cex.axis=2)
 dev.off()
 
 
