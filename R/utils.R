@@ -26,7 +26,7 @@ get_exons_start_end <- function(transcript){
     return(list(exst=exst, exen=exen))
 }
 
-plotCoordinates = function(listCoordinate, plotStart, plotEnd, cex.axis=1){
+plotCoordinates <- function(listCoordinate, plotStart, plotEnd, cex.axis=1){
     plot("NA",
          axes="F",
          yaxt="n",
@@ -44,7 +44,7 @@ plotCoordinates = function(listCoordinate, plotStart, plotEnd, cex.axis=1){
          cex.axis=cex.axis)
 }
 
-plotGenePred = function(GenePredOut, GenePredIn=NULL, plotStart, plotEnd, is_xaxis=1, title=NULL, Expr_v=NULL, listCoordinate=NULL, cex.axis=1){
+plotGenePred <- function(GenePredOut, GenePredIn=NULL, plotStart=NULL, plotEnd=NULL, is_xaxis=1, title=NULL, Expr_v=NULL, listCoordinate=NULL, cex.axis=1){
                                         # get data
     if (!is.null(GenePredIn)){
         if (!file.exists(GenePredIn))
@@ -57,13 +57,18 @@ plotGenePred = function(GenePredOut, GenePredIn=NULL, plotStart, plotEnd, is_xax
     if (!file.info(GenePredOut)$size == 0){
         OutTranscripts <- readTable(GenePredOut)
         nrOut          <- nrow(OutTranscripts)
+        chr            <- OutTranscripts[1,2]
+        if (is.null(plotStart)==1)
+            plotStart <- min(as.numeric(OutTranscripts[,4]))
+        if (is.null(plotEnd)==1)
+            plotEnd   <- max(as.numeric(OutTranscripts[,5]))
         plot("NA",
              axes="F",
              yaxt="n",
              main=title,
              xlim=c(plotStart,plotEnd),
              ylim=c(0,1),
-             xlab="Position (Mb)",
+             xlab=paste0("Position (Mb) on ", chr),
              ylab="",
              font.main=1)
         
@@ -85,7 +90,7 @@ plotGenePred = function(GenePredOut, GenePredIn=NULL, plotStart, plotEnd, is_xax
         }
         
         for (i in 1:nrOut){#set colors
-            if (OutTranscripts[i,3] == "-") fill_col="red" else fill_col="blue"
+            if (OutTranscripts[i,3] == "-") fill_col="red" else if (OutTranscripts[i,3] == "+") fill_col="blue" else  fill_col="black"
             border_col=fill_col;
             
             if (nrOut==1){y=0.5} else y=(nrOut+1-i)*(1/(nrOut+1))
@@ -128,21 +133,6 @@ plotGenePred = function(GenePredOut, GenePredIn=NULL, plotStart, plotEnd, is_xax
                      border=border_col)
         }
     }
-}
-
-plotListLociLine = function(locusStart, locusEnd, my_file, my_line){
-    if (!file.exists(my_file))
-        print(paste("ERROR: file", my_file, "does not exist"))
-    
-    DiffLoci  <- data.frame(lapply(read.table(my_file, 
-                                              fill=1, 
-                                              header=0), 
-                                   as.character), 
-                            stringsAsFactors=FALSE)
-    sqtl_region_start  <- as.numeric(DiffLoci[my_line,4])
-    sqtl_region_end    <- as.numeric(DiffLoci[my_line,5])
-    
-    rect(sqtl_region_start, 0, sqtl_region_end, 1, col=rgb(0,1,0,0.5), border=NA)  
 }
 
                                         #given a genepred file and a vector of expressions for each of the transcripts, plot the coverage
@@ -215,13 +205,12 @@ pred2coverage <- function(GenePredOut, indExprOut, locusStart, locusEnd, RL, M){
     return(h)
 }
 
-
-plotCoverage <- function(GenePredOut, individualExprOut, locusStart, locusEnd, RL, M, my_title, individualCoverages){	
+#plot coverage of one sample given number of reads that start at each base (individualCoverages)
+plotCov <- function(individualCoverages, locusStart, locusEnd, my_title){
     l       <- length(individualCoverages)
-    HH      <- pred2coverage(GenePredOut, individualExprOut, locusStart, locusEnd, RL, M)
     plotMax <- max(individualCoverages)
-    plot(locusStart:(locusStart + l - 1), 
-         individualCoverages,  
+    plot(locusStart:(locusStart + l - 1),
+         individualCoverages,
          lwd=0.1,
          col="black",
          font.main=1,
@@ -234,7 +223,17 @@ plotCoverage <- function(GenePredOut, individualExprOut, locusStart, locusEnd, R
          ylim=c(0, plotMax))
     axis(2, pos=locusStart)
     axis(1, pos=0)
+}
+
+plotCoverage <- function(GenePredOut, individualExprOut, locusStart, locusEnd, RL, M, my_title, individualCoverages){	
+    l       <- length(individualCoverages)
+    plotMax <- max(individualCoverages)
+    #plot coverage from bam files
+    plotCov(individualCoverages, locusStart, locusEnd, my_title)
+
+    #plot predictive
     par(new=TRUE)
+    HH      <- pred2coverage(GenePredOut, individualExprOut, locusStart, locusEnd, RL, M)
     plot(locusStart:(locusStart + length(HH) - 1), 
          HH, 
          lwd=0.5,
@@ -246,6 +245,13 @@ plotCoverage <- function(GenePredOut, individualExprOut, locusStart, locusEnd, R
          xlim=range(c(locusStart, locusStart + l - 1)), 
          ylim=c(0, plotMax))
 }
+
+plotCoverageFromBam <- function(bamfile, chr, locusStart, locusEnd, my_title){
+    individualCoverages <- system(paste0("cat ", chr, ":", locusStart, "-", locusEnd, " | coverageBed split -d -hist -abam ", bamfile, "-b stdin | awk '{printf(\"%s\",$5)} END{printf(\"\n\")}'"), intern=TRUE)
+    plotCov(individualCoverages, locusStart, locusEnd, my_title)
+}
+
+
 
                                         #============= FUNCTION =======================================================================================  
                                         #         NAME:     plotJunctions

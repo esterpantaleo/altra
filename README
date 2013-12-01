@@ -15,13 +15,18 @@ This library is distributed in the hope that it will be useful, but
 WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-gsl, boost dynamic_bitset, bedtools and samtools must be installed
+Depends on:
+gsl, boost dynamic_bitset, R and the R package FLLat downloadable at
+http://cran.r-project.org/web/packages/FLLat/index.html ,
+bedtools and samtools 
 
 Installation
 ============
 
+#cd into the package folder
 make all
-make test
+make check
+#put folder "scripts" in your PATH
 
 Usage
 =====

@@ -1,20 +1,38 @@
-INTERSECT=intersectBed
-hash $INTERSECT 2>/dev/null || { echo >&2 "bedtools $INTERSECT is required but not installed. Aborting."; exit 1; }
-MERGE=mergeBed
-hash $MERGE 2>/dev/null || { echo >&2 "bedtools $MERGE is required but not installed. Aborting."; exit 1; }
-COVERAGEBED=coverageBed
-hash $COVERAGEBED 2>/dev/null || { echo >&2 "bedtools  $COVERAGEBED is required but not installed. Aborting."; exit 1; }
-SAMTOOLS=samtools
-hash $SAMTOOLS 2>/dev/null || { echo >&2 "$SAMTOOLS is required but not installed. Aborting."; exit 1; }
-TABIX=tabix
-hash $TABIX 2>/dev/null || { echo >&2 "$TABIX is required but not installed. Aborting."; exit 1; }
 
-#================== FUNCTION ===================================================================
-#         NAME: absdir
-#  DESCRIPTION: This function returns the absolute path to the given path, i.e. the absolute
-#               path if the argument is a directory, or the absolute basename otherwise.
-#   ARGUMENT 1: absdir <path>
-#===============================================================================================
+# \file utils.sh
+#
+
+# Copyright (C) 2012-2013 Ester Pantaleo
+
+
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+
+
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+
+
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+
+#
+
+
+#================== FUNCTION ============================================================== 
+#         NAME: absdir                                                    
+#  DESCRIPTION: This function returns the absolute path to the given path, i.e. the absolute 
+#               path if the argument is a directory, or the absolute basename otherwise.   
+#   ARGUMENT 1: path (a string)                          
+#==========================================================================================
 function absdir() {
 if [[ -n "$1" ]] ; then
     if [[ -d $1 ]] ; then
@@ -29,9 +47,17 @@ if [[ -n "$1" ]] ; then
     fi
 fi
 }
+
+
+#-------------------------------------------------------------------------------------------
+#   Get the relative path of this script, use that to load the                         
+#   utilities, and finally use the absdir function from the utilities to                    
+#   transform the relative path to an absolute path.                                  
+#-------------------------------------------------------------------------------------------
 BASEDIR=`dirname ${BASH_SOURCE-$0}`
-BASEDIR=`absdir $BASEDIR`
-utils_awk=${BASEDIR}/utils.awk
+BASEDIR=`absdir $BASEDIR`           
+utils_awk=$BASEDIR"/utils.awk"
+
 
 #============= FUNCTION =========================             
 #         NAME:     try  
@@ -288,56 +314,6 @@ function genePredView(){
     esac
 }
 
-#============== FUNCTION ===========================
-#         NAME:     lengthBed
-#  DESCRIPTION:     reads in a (sorted) Bed file and returns the total length
-#                      of all the elements in the Bed file 
-#===================================================
-function lengthBed(){
-    local var
-    while read var;do
-	echo $var
-    done | awk '                                         
-           BEGIN{                                                 
-           lI = 0                                                   
-           }           
-           {           
-           i ++;                                                
-           lI -= $2;          
-           lI += $3;                                        
-           }                                        
-           END{ 
-           print lI;                       
-           }' 
-}
-
-#============== FUNCTION ===========================                                         
-#         NAME:      regionLengthBed                                     
-#  DESCRIPTION:      reads in a Bed file and returns the depth of
-#                    the region that contains all the elements in the Bed file
-#===================================================     
-function regionLengthBed(){
-    local var
-    while read var;do
-	echo $var
-    done | awk '                            
-           BEGIN{                                      
-           end = 0
-           start = 10000000000000000                                                   
-           }                                                    
-           { 
-           if ($2 < start)
-               start = $2
-           if ($3 > end)
-               end = $3
-           }                                                       
-           END{  
-           print end - start;                             
-           }'
-}
-
-
-
 #============== FUNCTION ===========================       
 #         NAME:      numCommonSS                               
 #  DESCRIPTION:      given two comma separated lists (ending with a comma)
@@ -417,21 +393,23 @@ function ListRemoveLast(){
 #===================================================
 function select_lines_randomly(){
     local _GenePredIn=$1
+    local _pK=$2
+    local _nK=$3
 
     local _l
 
     if [[ $VERBOSE -eq 1 ]]; then
-	echo "Randomly select $pK positive transcripts and $nK negative transcripts \
+	echo "Randomly select $_pK positive transcripts and $_nK negative transcripts \
            from file $_GenePredIn" >&2
     fi
 
-    if [ $pK -ge 1 ]; then
+    if [ $_pK -ge 1 ]; then
     # sample pos lines randomly
 	if [ -z `genePredView $_GenePredIn + which` ]; then
-	    pK=0
+	    _pK=0
 	else
 	    _l=0
-	    while (( $_l<$pK )); do
+	    while (( $_l<$_pK )); do
 		genePredView $_GenePredIn + | awk '       
                BEGIN{ 
                   srand() 
@@ -441,21 +419,21 @@ function select_lines_randomly(){
                }' | 
 		sort -n |   # Sort numerically on first (random number) column          
 		cut -f2- |  # Remove sorting column                      
-		head -n $pK >> $_GenePredIn"_pos_tmp"
+		head -n $_pK >> $_GenePredIn"_pos_tmp"
 		_l=`cat $_GenePredIn"_pos_tmp" | wc -l`
 	    done 
-	    cat $_GenePredIn"_pos_tmp" | head -n $pK
+	    cat $_GenePredIn"_pos_tmp" | head -n $_pK
 	    rm $_GenePredIn"_pos_tmp"
 	fi
     fi
     
-    if [ $nK -ge 1 ]; then
+    if [ $_nK -ge 1 ]; then
     # sample neg lines randomly                                          
 	if [ -z `genePredView $_GenePredIn - which` ]; then
-	    nK=0
+	    _nK=0
 	else
 	    _l=0
-            while (( $_l<$nK )); do
+            while (( $_l<$_nK )); do
 		genePredView $_GenePredIn - | awk '                      
                BEGIN{                                                         
                   srand()                                          
@@ -465,123 +443,15 @@ function select_lines_randomly(){
                }' | 
 		sort -n |   # Sort numerically on first (random number) column    
 		cut -f2- |  # Remove sorting column                      
-		head -n $nK >> $_GenePredIn"_neg_tmp"
+		head -n $_nK >> $_GenePredIn"_neg_tmp"
 		_l=`cat $_GenePredIn"_neg_tmp" | wc -l`
             done 
-	    cat $_GenePredIn"_neg_tmp" | head -n $nK
+	    cat $_GenePredIn"_neg_tmp" | head -n $_nK
 	    rm $_GenePredIn"_neg_tmp"
 	fi
     fi
 }
 
-
-#============== FUNCTION ===========================                                       
-#         NAME:      similarity                                                       
-#  DESCRIPTION:      compute similarity between transcript at line line1 in      
-#                    file GenePred1 and transcript at line line2 in GenePred2             
-#   ARGUMENT 1:      GenPred1                                                   
-#   ARGUMENT 2:      line1                         
-#   ARGUMENT 3:      GenePred2             
-#   ARGUMENT 3:      line2
-#=================================================== 
-function similarity(){
-    local _GenePred1=$1
-    local _line1=$2
-    local _GenePred2=$3
-    local _line2=$4
-
-    if [[ $VERBOSE -eq 1 ]];then
-        echo command line: "$FUNCNAME $@" >&2
-    fi
-
-    sed -n -e "$_line1"p $_GenePred1 | my_genePredLineToBed > $_GenePred1"_bed1"
-#echo file $_GenePred1"_bed1"
-#cat $_GenePred1"_bed1"
-    sed -n -e "$_line2"p $_GenePred2 | my_genePredLineToBed > $_GenePred2"_bed2"
-
-    #at the base level
-    #_LI is length of the intersection of the Bed files $GenePred1"_bed1" and $GenePred2"_bed2"
-    local _LI=`multiIntersectBed -i $_GenePred1"_bed1" $_GenePred2"_bed2" | grep "1,2" | lengthBed`
-    #_LE and _lE2 are the lengths (in bases) of the intervals in Bed files $_GenePred1"_bed1" and $_GenePred2"_bed2" respectively 
-    local _LE=`cat $_GenePred1"_bed1" | lengthBed`
-    local _LE2=`cat $_GenePred2"_bed2" | lengthBed`
-    #_LEN is the length (in bases) of the union of $_GenePred1"_bed1" and $_GenePred2"_bed2"
-    #local _LEN=`cat $_GenePred1"_bed1" $_GenePred2"_bed2" | regionLengthBed`
-
-    #at the splice site level
-    #_starts1 is the list of 3' splice sites including the start
-    #_internalStarts2 is the list of 3' splice sites (excluding the start)
-    local _starts1=`sed -n -e "$_line1"p $_GenePred1 | awk '{print $10}'`
-    local _starts2=`sed -n -e "$_line2"p $_GenePred2 | awk '{print $10}'`
-    local _ends1=`sed -n -e "$_line1"p $_GenePred1 | awk '{print $11}'`
-    local _ends2=`sed -n -e "$_line2"p $_GenePred2 | awk '{print $11}'`
-    local _starts1_v=(`echo ${_starts1//,/ }`)
-    local _starts2_v=(`echo ${_starts2//,/ }`)
-    #_E2 is the number of exons in $GenePred2"_bed2"                                                                     
-    local _E1=${#_starts1_v[@]}
-    local _E2=${#_starts2_v[@]}
-    #_TP is the number of common splice sites btw _GenePred1 and _GenePred2              
-    local _TP=`numCommonSS $_starts1 $_starts2`
-    let _TP=$_TP+`numCommonSS $_ends1 $_ends2`
-    #_internalTp is the number of common start sites   
-    local _internalStarts1
-    local _internalEnds1
-    local _internalTP=0
-    if [ $_E1 -ne 1 ];then
-	_internalStarts1=`ListRemoveFirst $_starts1`
-	_internalEnds1=`ListRemoveLast $_ends1`
-	_internalTP=`numCommonSS $_starts2 $_internalStarts1`
-	let _internalTP=$_internalTP+`numCommonSS $_ends2 $_internalEnds1`
-    fi
-    local _li
-    local _le2
-    local _le
-    local _tp
-    awk -v _li="$_LI" -v _le="$_LE" -v _le2="$_LE2" -v _tp="$_TP" \
-        -v _e2="$_E2" -v _internaltp="$_internalTP" '
-        BEGIN{
-        # TruePositive/(True Positive + FalseNegative) at the base level
-        BLSn=_li/_le2 
-        # TrueNegative/(TruePositive + FalsePositive) or in the literature TruePositive/(TruePositive+FalsePositive)
-        BLSp=_li/_le
-        ELSn=_tp/(2*_e2)
-        elsn=_internaltp/(2*_e2-2); 
-        printf("%s %s %s %s",BLSn,BLSp,ELSn,elsn)
-        }'
-    rm $_GenePred1"_bed1"
-    rm $_GenePred2"_bed2"
-}
-
-#============== FUNCTION ========================================================================
-#         NAME:      genePredSimilarity                         
-#  DESCRIPTION:      compute similarity between transcript at line line1 in 
-#                    file GenePred1 and transcripts in GenePred2
-#   ARGUMENT 1:      GenPred1                        
-#   ARGUMENT 2:      line1 
-#   ARGUMENT 3:      GenePred2
-#================================================================================================
-function genePredSimilarity(){
-    local _GenePred_1=$1
-    local _line_1=$2
-    local _GenePred_2=$3
-
-    if [[ $VERBOSE -eq 1 ]];then
-        echo command line: "$FUNCNAME $@" >&2
-    fi
-
-    if [ -z $1 ] || [ -z $2 ] || [ -z $3 ];then
-        echo "ERROR: incorrect number of arguments in function $FUNCNAME" >&2
-        exit 1;
-    fi
-
-    local _ll=`cat $_GenePred_2 | wc -l `
-    local _ff
-    local _s
-    for (( _ff=1; _ff<=$_ll; _ff++ ));do
-      _s=`similarity $_GenePred_1 $_line_1 $_GenePred_2 $_ff`
-      echo $_ff $_s
-    done | sort -k 4,4n -k 3,3n -k 1,1n -k 2,2n #| tail -1
-}
  
 #============== FUNCTION ===========================                            
 #         NAME:      write_SSfile  
@@ -856,7 +726,6 @@ function write_JunctionsIn(){
     local _N=${#_readfiles_v[@]}
 
     for ((_i=0;_i<$_N;_i++)); do
-        #_readfile_name_v[$_i]=`basename ${_readfiles_v[$_i]}`    
         bam2JunctionBed6 ${_readfiles_v[$_i]} $_chr $_locus_start $_locus_end | \
             awk 'BEGIN{OFS="\t"}{print $1,$2,$3,$6,$5}' > $_j_tmp
         if [ $_i -eq 0 ]; then
@@ -1057,7 +926,7 @@ function output2summary(){
 }
 
 function version () {
-    msg="$0 0.1\n"
+    msg="$0 1.0\n"
     msg+="\n"
     msg+="Copyright (C) 2012 E. Pantaleo\n"
     msg+="License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n"
@@ -1082,9 +951,7 @@ function help () {
     msg+="  -v, --verbose\n"
     msg+="  -L, --locus\t\t<chr:locusStart-locusEnd>\tA string specifying the region: chromosome:locusStart-locusEnd.\n"
     msg+="  -o, --out\t\t<string>\t\t\tSet the path to the output folder. Default output folder is ./out_altra/\n"
-    msg+="  -r, --read_folders\t<folder1[,...,folderN]>\t\tSet the path to the folders containing accepted_hits.bam for each of the N samples; accepted_hits.bam should be indexed with samtools. From the bam files altra will extract reads that start in the locus (more precisely that start between the start of the locus and the end of the locus minus the read length).\n"
-    msg+="  -R, --read_labels\t<label1[,...,labelN]>\t\tBy default altra names the samples after the name of the folders containing the bam files; by providing this option altra will use the provided strings as labels for the N samples.\n"
-    msg+="  -c, --total_counts\t<count1[,...,countN]>\t\tA comma separated string with the total count of reads for each of the N samples.\n"
+    msg+="  -r, --samplesheet\t\tPath to a file with 3 columns specifying: sample ID (column 1), path to bam file containing reads for sample (column 2), total number of reads for sample (column 3); this file has N rows, one row for each sample. From the bam files altra will extract reads that start in the locus (more precisely that start between the start of the locus and the end of the locus minus the read length).\n"
     msg+="  -a, --read_length\t<int>\t\t\t\tThe read length; all reads must have same length; altra will remove from the input GenePred file those transcripts that are shorter than the read length.\n"
     msg+="  -O, --overhang\t<int>\t\t\t\tThe overhang of the mapping method. Default value is 9.\n"
     
@@ -1137,7 +1004,7 @@ function help () {
 }
 
 function parseArgs () {
-    TEMP=`getopt -o hVvo:r:c:R:a:O:f:F:g:s:S:z:Z:G:L:j:J:M:e:D:p:n:t:q:m:d:y:l:b: -l help,version,verbose: \
+    TEMP=`getopt -o hVvo:r:c:a:O:f:F:g:s:S:z:Z:G:L:j:J:M:e:D:p:n:t:q:m:d:y:l:b: -l help,version,verbose: \
 	-n "$0" -- "$@"`
     if [ $? != 0 ] ; then echo "ERROR: getopt failed" >&2 ; exit 1 ; fi
     eval set -- "$TEMP"
@@ -1147,10 +1014,9 @@ function parseArgs () {
 	    -V|--version) version; exit 0; shift;;
 	    -v|--verbose) VERBOSE=1; shift;;
 	    -o|--out) JOB_FOLDER=$2; shift 2;;
-	    -r|--read_folders) readfolders=$2; shift 2;;
-	    -R|--read_labels) readfolder_labels=$2; shift 2;;
+	    -r|--readfiles) readfiles=$2; shift 2;;
 	    -c|--total_counts) C=$2; shift 2;;
-	    -a|--read_length) RL=$2; shift 2;;
+            -a|--read_length) RL=$2; shift 2;;
 	    -O|--overhang) OVERHANG=$2; shift 2;;
 	    -f|--genepred_file) GenePredIn=$2; shift 2;;
 	    -F|--genepred_line) g_line=$2; shift 2;;
@@ -1197,37 +1063,38 @@ function parseArgs () {
 	exit 1
     fi
         
-    if [[ ! -d $JOB_FOLDER ]];then
+    if [[ ! -d $JOB_FOLDER ]]; then
 	mkdir $JOB_FOLDER
     fi
+
+    last=`echo $JOB_FOLDER | tail -c 2`
+    if [[ "$last" != "/" ]]; then
+	JOB_FOLDER=$JOB_FOLDER"/"
+    fi
+    echo JOB_FOLDER=$JOB_FOLDER >&2
     
-    if [[ -z $readfolders ]];then
-	echo "ERROR: specify folders where BAM files are located" >&2
+    if [[ -z $readfiles ]]; then
+	echo "ERROR: specify path to BAM files using option -r" >&2
 	help >&2
 	exit 1
     fi
-      
-    readfolders_v=(`echo $readfolders | sed 's/,/ /g'`)
-    if [[ -z $readfolder_labels ]];then
-	readfolder_labels=""
-	for rr in ${readfolders_v[@]};do
-	    readfolder_labels=$readfolder_labels`basename $rr`","
-	    echo "WARNING: missing labels, using "`basename $rr` >&2
-	done
-	readfolder_labels="${readfolder_labels%?}"
+
+    if [[ -z $C ]]; then
+	echo "ERROR: set value of C (sequencing depth) using option -c"
+        help >&2
+        exit 1
     fi
-    readfolder_labels_v=(`echo $readfolder_labels | sed 's/,/ /g'`)
 
     if [ $genePrediction -eq 1 ]; then
-	if [[ -z $GenePredReference ]];then
+	if [[ -z $GenePredReference ]]; then
             echo "ERROR: specify GenePred annotation files using option -g" >&2
 	    exit 1
 	fi
-	if [[ ! -z $GenePredIn ]];then
+	if [[ ! -z $GenePredIn ]]; then
 	    echo "ERROR: option -g is incompatible with (default) option -G 1" >&2
 	    exit 1
 	fi
-	if [[ ! -z $g_line ]];then
+	if [[ ! -z $g_line ]]; then
 	    echo "ERROR: option -F is incompatible with (default) option -G 1" >&2
             exit 1
         fi
@@ -1238,14 +1105,9 @@ function parseArgs () {
     fi
  
     if [ $genePrediction -eq 2 ]; then
-	if [[ -z $GenePredIn ]];then
+	if [[ -z $GenePredIn ]]; then
             echo "ERROR: option -G is set to 2; you must provide a GenePred file with option -f" >&2
             exit 1
 	fi
-    fi
-   
-    if [[ -z $C ]]; then
-        echo "ERROR: set value of C (sequencing depth)"
-        exit 1
     fi
 }

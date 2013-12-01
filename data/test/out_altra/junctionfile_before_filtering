@@ -1,0 +1,14 @@
+chr 5ss 3ss strand /mnt/lustre/home/epantaleo/altra/test/../data/test/ind1.bam /mnt/lustre/home/epantaleo/altra/test/../data/test/ind2.bam
+chr11 450637 451385 + 18 46 
+chr11 450637 460187 + 44 20 
+chr11 451493 460187 + 24 67 
+chr11 460288 473895 + 55 25 
+chr11 473977 479085 + 43 30 
+chr11 479152 486939 + 47 17 
+chr11 487073 487420 + 46 24 
+chr11 487470 488199 + 63 20 
+chr11 488312 488529 + 41 20 
+chr11 488647 489400 + 51 19 
+chr11 489514 489588 + 54 23 
+chr11 489733 489883 + 42 20 
+chr11 490068 490420 + 42 32 

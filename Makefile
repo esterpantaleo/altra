@@ -7,9 +7,8 @@ CFLAGS = #-Wall -Wextra
 BIN = $HOME/bin
 OBJs = src/altra.o src/expression.o src/TranscriptModel.o src/likelihood.o src/Reads.o src/ProposedTranscript.o src/Move.o src/Centers.o src/Transcript.o src/Center.o src/Arguments.o src/utils.o
 
-all: ${OBJs} src/sim_sam.o
+all: ${OBJs}
 	make altra
-	make sim_sam
 
 altra: ${OBJs}
 	$(CC) $(CFLAGS) ${OBJs} -o src/altra ${LFLAGS} ${LIBS}
@@ -50,18 +49,12 @@ src/Arguments.o: src/Arguments.cpp src/utils.o
 clean:
 	rm -f *~ ${OBJS} 
 
-sim_sam: src/sim_sam.o src/utils.o
-	$(CC) $^ -o src/sim_sam ${LFLAGS} ${LIBS}
-
-src/sim_sam.o: src/sim_sam.cpp src/utils.o
-	$(CC) -c $< -o $@ 
-
 src/utils.o: src/utils.cpp
 	$(CC) -c $< -o $@
 
 #install: altra
 #	cp altra $(BIN)
 
-test: all
+check: all
 	./test/test.sh >& test/test.log
 	@echo "see test/test.log"

@@ -1,24 +1,9 @@
-/mnt/lustre/home/epantaleo/altra/scripts/../src/sim_sam g_in=/mnt/lustre/home/epantaleo/altra/data//GenePredToSim g_line=1,2 readfolder=/mnt/lustre/home/epantaleo/altra/data/ind1/ lambdas=2.,.8 RL=46 OVERHANG=9 locusStart=448267 locusEnd=491000
-Simulating from transcript
-ENST00000308020	chr11	+	450279	491387	450455	490582	12	450279,460186,473894,479084,486938,487419,488198,488528,489399,489587,489882,490419, 450637,460288,473977,479152,487073,487470,488312,488647,489514,489733,490068,491387,
- with lambda 2
-Simulating from transcript
-ENST00000525059	chr11	+	450353	461051	461051	461051	3	450353,451384,460186,								     450637,451493,461051,
- with lambda 0.8
-[samopen] SAM header is present: 1 sequences.
-/mnt/lustre/home/epantaleo/altra/scripts/../src/sim_sam g_in=/mnt/lustre/home/epantaleo/altra/data//GenePredToSim g_line=1,2 readfolder=/mnt/lustre/home/epantaleo/altra/data/ind2/ lambdas=.8,2. RL=46 OVERHANG=9 locusStart=448267 locusEnd=491000
-Simulating from transcript
-ENST00000308020	chr11	+	450279	491387	450455	490582	12	450279,460186,473894,479084,486938,487419,488198,488528,489399,489587,489882,490419, 450637,460288,473977,479152,487073,487470,488312,488647,489514,489733,490068,491387,
- with lambda 0.8
-Simulating from transcript
-ENST00000525059	chr11	+	450353	461051	461051	461051	3	450353,451384,460186,								     450637,451493,461051,
- with lambda 2
+JOB_FOLDER=/mnt/lustre/home/epantaleo/altra/test/../data/test/out_altra/
 [samopen] SAM header is present: 1 sequences.
 [samopen] SAM header is present: 1 sequences.
-[samopen] SAM header is present: 1 sequences.
-/mnt/lustre/home/epantaleo/altra/scripts/../src/altra 1,1 46 448266.5,448267.5,448419.5,450279.5,450295.5,450326.5,450346.5,450353.5,450419.5,450450.5,450637.5,451351.5,451384.5,451493.5,458673.5,458860.5,459111.5,460186.5,460288.5,460760.5,460879.5,461051.5,462929.5,463041.5,463347.5,463899.5,473894.5,473919.5,473977.5,479084.5,479152.5,479445.5,480124.5,480594.5,486938.5,487053.5,487073.5,487238.5,487419.5,487470.5,488198.5,488312.5,488528.5,488647.5,489349.5,489399.5,489514.5,489587.5,489730.5,489733.5,489790.5,489882.5,490068.5,490419.5,490546.5,490642.5,490720.5,491000.5 0,1,3,4,5,6,7,8,9,11,12,14,15,17,19,26,27,29,32,34,37,38,40,42,44,45,47,50,51,53, 2,10,13,16,18,20,21,28,30,31,33,35,36,39,41,43,46,48,49,52,54,55,56,57, 0,22,24, 23,25,57, 4000 1000 1000 10 1 /mnt/lustre/home/epantaleo/altra/data/GenePredInitialState /mnt/lustre/home/epantaleo/altra/data/ chr11 10 3000 50 50000 1 -4. 1. 2. 49. 2. 4. 1. /mnt/lustre/home/epantaleo/altra/scripts/utils.sh output2summary
-Rscript /mnt/lustre/home/epantaleo/altra/scripts/../R/altra.R /mnt/lustre/home/epantaleo/altra/scripts/../R/utils.R ind1,ind2 46 9 1,1 448266.5,448267.5,448419.5,450279.5,450295.5,450326.5,450346.5,450353.5,450419.5,450450.5,450637.5,451351.5,451384.5,451493.5,458673.5,458860.5,459111.5,460186.5,460288.5,460760.5,460879.5,461051.5,462929.5,463041.5,463347.5,463899.5,473894.5,473919.5,473977.5,479084.5,479152.5,479445.5,480124.5,480594.5,486938.5,487053.5,487073.5,487238.5,487419.5,487470.5,488198.5,488312.5,488528.5,488647.5,489349.5,489399.5,489514.5,489587.5,489730.5,489733.5,489790.5,489882.5,490068.5,490419.5,490546.5,490642.5,490720.5,491000.5 /mnt/lustre/home/epantaleo/altra/data/ /mnt/lustre/home/epantaleo/altra/data/GenePredInCut /mnt/lustre/home/epantaleo/altra/data/GenePredOut /mnt/lustre/home/epantaleo/altra/data/ExprOut /mnt/lustre/home/epantaleo/altra/data/llkOut /mnt/lustre/home/epantaleo/altra/data/junctionfile_after_filtering /mnt/lustre/home/epantaleo/altra/data/SSfile_breakpoints_filtered /mnt/lustre/home/epantaleo/altra/data/coverages
-[1] 1.038509
+/mnt/lustre/home/epantaleo/altra/scripts/../src/altra 1,1 46 448266.5,448267.5,448419.5,450279.5,450295.5,450326.5,450346.5,450353.5,450419.5,450450.5,450637.5,451351.5,451384.5,451493.5,458673.5,458860.5,459111.5,460186.5,460288.5,460760.5,460879.5,461051.5,462929.5,463041.5,463347.5,463899.5,473894.5,473919.5,473977.5,479084.5,479152.5,479445.5,480124.5,480594.5,486938.5,487053.5,487073.5,487238.5,487419.5,487470.5,488198.5,488312.5,488528.5,488647.5,489349.5,489399.5,489514.5,489587.5,489730.5,489733.5,489790.5,489882.5,490068.5,490419.5,490546.5,490642.5,490720.5,491000.5 0,1,3,4,5,6,7,8,9,11,12,14,15,17,19,26,27,29,32,34,37,38,40,42,44,45,47,50,51,53, 2,10,13,16,18,20,21,28,30,31,33,35,36,39,41,43,46,48,49,52,54,55,56,57, 0,22,24, 23,25,57, 4000 1000 1000 10 1 /mnt/lustre/home/epantaleo/altra/test/../data/test/out_altra/GenePredInitialState /mnt/lustre/home/epantaleo/altra/test/../data/test/out_altra/ chr11 10 3000 50 50000 1 -4. 1. 2. 49. 2. 4. 1. /mnt/lustre/home/epantaleo/altra/scripts/utils.sh output2summary
+Rscript /mnt/lustre/home/epantaleo/altra/scripts/../R/altra.R /mnt/lustre/home/epantaleo/altra/scripts/../R/utils.R 448267 491000 2 46 9 1,1 /mnt/lustre/home/epantaleo/altra/test/../data/test/out_altra/ /mnt/lustre/home/epantaleo/altra/test/../data/test/out_altra/GenePredInCut /mnt/lustre/home/epantaleo/altra/test/../data/test/out_altra/GenePredOut /mnt/lustre/home/epantaleo/altra/test/../data/test/out_altra/ExprOut /mnt/lustre/home/epantaleo/altra/test/../data/test/out_altra/llkOut /mnt/lustre/home/epantaleo/altra/test/../data/test/out_altra/junctionfile_after_filtering /mnt/lustre/home/epantaleo/altra/test/../data/test/out_altra/SSfile_breakpoints_filtered /mnt/lustre/home/epantaleo/altra/test/../data/test/out_altra/coverages
+[1] 1.3278
 Warning message:
 In xy.coords(x, y, xlabel, ylabel, log) : NAs introduced by coercion
 Warning message:
