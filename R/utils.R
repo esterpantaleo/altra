@@ -193,11 +193,23 @@ plotCov <- function(individualCoverages, locusStart, locusEnd, my_title){
     plotMax <- max(individualCoverages)
     plot(locusStart:(locusStart + l - 1),
          individualCoverages,
-
+         lwd=0.1,
+         col="black",
+         font.main=1,
+         main=my_title,
+         axes="F",
+         type="h",
+         xlab = "",
+         ylab = "",
+         xlim=range(c(locusStart, locusStart + l - 1)),
+         ylim=c(0, plotMax))
+    axis(2, pos=locusStart)
+}
+    
 plotCoverage <- function(GenePredOut, individualExprOut, locusStart, locusEnd, RL, M, my_title, individualCoverages){	
     l       <- length(individualCoverages)
     plotMax <- max(individualCoverages)
-    #plot coverage from bam files
+                                        #plot coverage from bam files
     plotCov(individualCoverages, locusStart, locusEnd, my_title)
 
     #plot predictive
