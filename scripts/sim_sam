@@ -71,33 +71,27 @@ sim_sam=$BASEDIR"/../src/sim_sam"
 
 help(){
     echo -e "\
-sim_sam generates simulated bam files.
-sim_sam generates reads of a specific length (specified by option -R) for a set of individuals as if they were emitted by a list of transcripts 
-(the list of transcripts is provided in GenePred format with option -g; specific lines in this file can be selected using option -l) 
-in a region specified with option -L. The intensity of expression for each sample must be specified (use option -m).
+sim_sam generates a simulated bam file.
+sim_sam generates reads of a specific length (specified by option -R) for a sample as if they were emitted by the list of transcripts provided in GenePred file (specified with option -g) in a region specified with option -L. The intensity of expression for each sample must be specified (use option -m).
 
 usage: $0 options
        OPTIONS:
-       -o <string>                                         Specify the name of the output folder
-       -r <reads1[,...,readsN]>                            A comma-separated list of headers that will name the folders containing
-                                                           the simulated bam file
-       -g <file>                                           Specify the name of the GenePred file containing the gene prediction model
-       -L <chr:locusStart-locusEnd>                        A string with the name of the chromosome\":\"locusStart-locusEnd 
-       -l <int[,int,...]>                                  A comma-separated list of the lines in the GenePred file
+       -o <file>                                           Specify the path to the output bam file
+       -g <file>                                           Specify the name of the GenePred file containing the gene model
+       -L <chr:locusStart-locusEnd>                        A string with the name of the chromosome\":\"locusStart-locusEnd
        -R <int>                                            Read length
        -M <int>                                            Overhang used when mapping reads with junctions
-       -m <double[,double,…]:...:double[,double,…]         A \",\" separated list of the intensities for each individual,
-                                                           for each line in GenePred file
+       -m <double[,double,…]>                              A \",\" separated list of the intensities for each transcript in the GenePred file
        -h                                                  Print help and exit
 
-example: sim_sam -r ind1,ind2,ind3 -g ./GenePredFile -L chr15:38567531-38644544 -l 1,2 -R 46 -M 9 -m 5.,3.:3.,1.:5.,6. -o ./my_output_folder"
+example: sim_sam -r ind1,ind2,ind3 -g ./GenePredFile -L chr15:38567531-38644544 -l 1,2 -R 46 -M 9 -m 5.,3.:3.,1.:5.,6. -o ./ind1.bam"
 
 }
 
 SAMTOOLS=samtools
 hash $SAMTOOLS 2>/dev/null || { echo >&2 "Requires $SAMTOOLS but it's not installed.  Aborting."; exit 1; }
 
-while getopts "ho:r:g:L:l:R:M:v:m:" OPTION
+while getopts "ho:g:L:R:M:v:m:" OPTION
 do
     case $OPTION in
         h)
@@ -105,20 +99,14 @@ do
             exit 1
             ;;
         o) 
-	    OUTPUT_FOLDER=$OPTARG"/"
-	    ;;
-	r)
-	    readfolder_labels=$OPTARG
+	    BamOut=$OPTARG
 	    ;;
 	g)
-	    g_in=$OPTARG
+	    GenePredIn=$OPTARG
 	    ;;
         L) 
 	    LOCUS=$OPTARG
             ;;
-        l)
-	    g_line=$OPTARG
-	    ;;
         R)
 	    RL=$OPTARG
 	    ;;
@@ -149,53 +137,40 @@ simulate_data() {
     interval=( `echo ${LOCUS_v[1]} | tr "-" "\n" `)
     locusStart=${interval[0]}
     locusEnd=${interval[1]}
-    lambdas_v=(`echo $lambdas | tr ":" "\n" `)
-    readfolder_labels_v=(`echo ${readfolder_labels//,/ }`)
-    N=${#readfolder_labels_v[@]}
+
+    OUTPUT_FOLDER=`dirname ${BamOut}`
     if [[ ! -d $OUTPUT_FOLDER ]];then
         mkdir $OUTPUT_FOLDER
     fi
 
-
-    # generate bam files and bed files and index them
-    for (( i=0;i<$N;i++ ));do
-    readfolder=$OUTPUT_FOLDER${readfolder_labels_v[$i]}"/"
-    if [[ ! -d $readfolder ]];then
-        mkdir $readfolder
-	fi
-	echo $sim_sam g_in=$g_in g_line=$g_line readfolder=$readfolder lambdas=${lambdas_v[$i]} RL=$RL OVERHANG=$OVERHANG locusStart=$locusStart locusEnd=$locusEnd
-	command="$sim_sam $g_in $g_line $readfolder ${lambdas_v[$i]} $RL $OVERHANG $locusStart $locusEnd"
-	$sim_sam $g_in $g_line $readfolder ${lambdas_v[$i]} $RL $OVERHANG $locusStart $locusEnd
-	${SAMTOOLS} view -bSh $readfolder"accepted_hits.sam" | ${SAMTOOLS} sort - $readfolder"accepted_hits"
-	rm $readfolder"accepted_hits.sam"
-	${SAMTOOLS} index $readfolder"accepted_hits.bam"
-    done
+    # generate bam file and index it
+    echo "Starting simulation:"
+    echo $sim_sam ${GenePredIn} BamOut=${BamOut}".sam" lambda=${lambdas} RL=${RL} OVERHANG=${OVERHANG} chr=${chr} locusStart=${locusStart} locusEnd=${locusEnd}
+    $sim_sam ${GenePredIn} ${BamOut}".sam" ${lambdas} ${RL} ${OVERHANG} ${chr} ${locusStart} ${locusEnd}
+    ${SAMTOOLS} view -bSh ${BamOut}".sam" | ${SAMTOOLS} sort - ${BamOut}
+    rm ${BamOut}".sam"
+    ${SAMTOOLS} index ${BamOut}
 }
 
 ########CHECK ARGUMENTS
 check_arguments() {
-    if [[ -z $OUTPUT_FOLDER ]]; then
-	echo "ERROR: specify output folder"
+    if [[ -z ${BamOut} ]]; then
+	echo "ERROR: specify output bam file"
 	usage
 	exit 1
     fi
-    if [[ -z $LOCUS ]];then
+    if [[ -z ${LOCUS} ]];then
 	echo "ERROR: missing LOCUS"
 	usage
 	exit 1
     fi
-    if [[ -z $g_in ]] || [[ -z $g_line ]];then
-	echo "ERROR: missing GenePred file or g_line"
+    if [[ -z ${GenePredIn} ]];then
+	echo "ERROR: specify GenePred file"
 	usage
 	exit 1
     fi
-    if [[ -z $lambdas ]];then
-	echo "ERROR: missing lambdas"
-        usage
-        exit 1
-    fi
-    if [[ -z $readfolder_labels ]];then
-        echo "ERROR: specify readfolder labels"
+    if [[ -z ${lambdas} ]];then
+	echo "ERROR: specify lambdas"
         usage
         exit 1
     fi
