@@ -1,5 +1,5 @@
-altra: a Bayesian method for simultaneous transcript reconstruction and abundance estimation with RNA-Seq data in multiple samples
-==============================================================================
+###altra: a Bayesian method for simultaneous transcript reconstruction and abundance estimation with RNA-Seq data in multiple samples
+
 This repository contains **altra**, a software implementing a Bayesian method
 for simultaneous transcript reconstruction and abundance estimation with 
 RNA-Seq data in multiple samples
@@ -14,12 +14,11 @@ This library is distributed in the hope that it will be useful, but
 WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
 
-Dependences
-===========
+####Dependences
+
 Installation instructions below assume that the *bedtools* and *samtools* are in your path and that the *gsl* and *boost dynamic_bitset* are installed on your system. Also the software uses *R* and the R package [*FLLat*](http://cran.r-project.org/web/packages/FLLat/index.html).
 
-Installation
-============
+####Installation
 
 To install the package, clone the repository in *~/src/altra*, then:
 
@@ -36,10 +35,9 @@ After adding new lines to your *.bashrc* for the first time, remember to either 
     source ~/.bashrc
 
 
-Usage
-=====
+###Usage
 
 To print the usage run altra with option -h:
 
-altra -h
+    altra -h
 
