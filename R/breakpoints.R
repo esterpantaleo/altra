@@ -43,8 +43,8 @@ my_coordinate5  <- locusStart
 
 for (j in 1:ceiling(nr/MAX_NROW)){ 
     h           <- as.matrix(h_matrix[start:min(nr, start + MAX_NROW - 1),])
-    trial       <- try(result  <- FLLat(h, J=1, B="pc", lam1=l1, lam2=l2))
-    if(class(result) != "try-error"){ 
+    trial       <- try(result  <- FLLat(h, J=1, B="pc", lam1=l1, lam2=l2), silent=TRUE)
+    if (class(trial) != "try-error"){ #if there is no error
     	my_Beta <- c(last_Beta, result$Beta)
     	if (j==1){
        	   pdf(file=paste(SSfile,".pdf", sep=""));
@@ -101,8 +101,10 @@ for (j in 1:ceiling(nr/MAX_NROW)){
            }
            last_Beta <- my_Beta[i + 1]
         }   
-     }else
-        last_Beta <- NULL   
+     }else{ #if FLLat returns error
+        print(paste("FLLat returned an error; altra will not use breakpoints in region", j))
+        last_Beta <- NULL
+    }
      start     <- start + MAX_NROW
 }
 

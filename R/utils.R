@@ -164,8 +164,8 @@ pred2coverage <- function(GenePredOut, indExprOut, locusStart, locusEnd, RL, M){
 								       break;
                                                           }
                                                     if (rest > 0 || any(read_v < M)){
-                                                        print(rest)
-                                                        print(read_v) 
+                                                        #print(rest)
+                                                        #print(read_v) 
                                                         break;
                                                     }
                                                     ##else
@@ -209,14 +209,14 @@ plotCov <- function(individualCoverages, locusStart, locusEnd, my_title){
 plotCoverage <- function(GenePredOut, individualExprOut, locusStart, locusEnd, RL, M, my_title, individualCoverages){	
     l       <- length(individualCoverages)
     plotMax <- max(individualCoverages)
-                                        #plot coverage from bam files
+                                           #plot coverage from bam files
     plotCov(individualCoverages, locusStart, locusEnd, my_title)
-
+    
     #plot predictive
     par(new=TRUE)
-    HH      <- pred2coverage(GenePredOut, individualExprOut, locusStart, locusEnd, RL, M)
-    plot(locusStart:(locusStart + length(HH) - 1), 
-         HH, 
+    predCov      <- pred2coverage(GenePredOut, individualExprOut, locusStart, locusEnd, RL, M)
+    plot(locusStart:(locusStart + length(predCov) - 1), 
+         predCov, 
          lwd=0.5,
          col="red",
          axes="F", 
@@ -225,6 +225,11 @@ plotCoverage <- function(GenePredOut, individualExprOut, locusStart, locusEnd, R
          ylab = "", 
          xlim=range(c(locusStart, locusStart + l - 1)), 
          ylim=c(0, plotMax))
+   
+   covDiff=abs(individualCoverages-predCov[1:length(individualCoverages)])
+   toreturn=sum(covDiff)
+   
+   return(toreturn/sum(individualCoverages))
 }
 
 plotCoverageFromBam <- function(bamfile, chr, locusStart, locusEnd, my_title){
