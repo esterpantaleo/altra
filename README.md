@@ -37,7 +37,7 @@ After adding this line to your *.bashrc*, remember to either login again, or do
 
 ####Usage
 
-To print the usage run **altra* with option `-h`:
+To print the usage run **altra** with option `-h`:
 
     altra -h
 
