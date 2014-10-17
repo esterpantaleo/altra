@@ -1,8 +1,8 @@
-###altra: a Bayesian method for simultaneous transcript reconstruction and abundance estimation with RNA-Seq data in multiple samples
+###altra
 
-This repository contains **altra**, a software implementing a Bayesian method
+This repository contains **altra**, a **software implementing a Bayesian method
 for simultaneous transcript reconstruction and abundance estimation with 
-RNA-Seq data in multiple samples
+RNA-Seq data in multiple samples**.
 
 **altra** is free software, you can redistribute it and/or modify it under
 the terms of the GNU General Public License.
@@ -20,7 +20,7 @@ Installation instructions below assume that the [*bedtools*](https://github.com/
 
 ####Installation
 
-To install the package, clone the repository in *~/src/altra*, then:
+To install the software, clone the repository in *~/src/altra*, then:
 
     cd ~/src/altra
     make all
