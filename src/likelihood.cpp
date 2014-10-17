@@ -67,8 +67,8 @@ double diff_lln(const gsl_vector* log_lambda, const gsl_vector* log_gamma, const
   return  0.5 * (tmp * tmp - tmp2 * tmp2 + 2. * gsl_vector_get(log_lambda_bar, k) * (tmp2 - tmp)) / gsl_vector_get(Var_l, k);
 }
 
-double log_likelihood(const gsl_vector *lambda, const double &epsilon, const double &log_epsilon, const gsl_matrix* X, const gsl_vector* L, Arguments &A){
-  double inn[A.N], toreturn = -A.LC * epsilon * A.sumC, tmp;
+double log_likelihood(const gsl_vector *lambda, const double &epsilon, const double &log_epsilon, const gsl_matrix* X, const gsl_vector* L, allReads &reads, Arguments &A){
+  double inn[A.N], toreturn = -(A.LC-A.RL+1+(reads.pos.size+reads.neg.size)*(A.RL-2*A.OVERHANG)) * epsilon * A.sumC, tmp;
 
   for (unsigned int i = 0; i < A.N; i ++){
     tmp = 0.;

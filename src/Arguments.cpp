@@ -28,8 +28,8 @@
 #include "Arguments.h"
 
 Arguments::~Arguments(){
-  outdatallk.close();
-  outdata1.close();
+  if (VERBOSE==1)
+    outdatallk.close();
   gsl_matrix_free(Z);
   gsl_matrix_free(VAR_q);
   gsl_matrix_free(VAR_l);
@@ -52,11 +52,12 @@ void Arguments::print_ar_my_update(const unsigned int &num_steps){
 }
 
 Arguments::Arguments(int argc, const char* argv[]){  
-  if (argc != 30){
+  if (argc != 31){
     cerr << argv[0] << ": incorrect number of arguments. Aborting.\n";
     exit(1);
   }
-  C = f_tokenize(argv[1], ",", 0);
+  VERBOSE = atoi(argv[1]);
+  C = f_tokenize(argv[2], ",", 0);
   N = (unsigned int) C.size();
   Csum = 0.;
   for (unsigned int i = 0; i < N; i ++)
@@ -66,65 +67,63 @@ Arguments::Arguments(int argc, const char* argv[]){
     C.at(i) = C[i] / NORMALIZATION;
     log_C.push_back(log(C[i]));
   }
-  RL = atoi(argv[2]);
-  argv3 = argv[3];
-  listCoordinate = f_tokenize(argv3, ",", 0);
+  RL = atoi(argv[3]);
+  argv4 = argv[4];
+  listCoordinate = f_tokenize(argv4, ",", 0);
   lC = (unsigned int) listCoordinate.size();
-  MC_STEPS = atoi(argv[8]);
-  MC_BURNIN = atoi(argv[9]);
-  MC_EQ = atoi(argv[10]);
-  MC_THIN = atoi(argv[11]);
-  genePrediction = (unsigned int) atoi(argv[12]);
-  genePredFile = argv[13];
-  argv14 = argv[14];
-  chr = argv[15];
-  MIN_EX_LEN = atoi(argv[16]);
-  MAX_EX_LEN_DIV_2 = (unsigned int) ceil(atoi(argv[17])/2.);//interval around a center used to choose SS
-  MIN_IN_LEN = atoi(argv[18]);
-  MAX_IN_LEN = atoi(argv[19]);
-  scale_junction_count_by = atoi(argv[20]);
+  MC_STEPS = atoi(argv[9]);
+  MC_BURNIN = atoi(argv[10]);
+  MC_EQ = atoi(argv[11]);
+  MC_THIN = atoi(argv[12]);
+  genePrediction = (unsigned int) atoi(argv[13]);
+  genePredFile = argv[14];
+  argv15 = argv[15];
+  chr = argv[16];
+  MIN_EX_LEN = atoi(argv[17]);
+  MAX_EX_LEN_DIV_2 = (unsigned int) ceil(atoi(argv[18])/2.);//interval around a center used to choose SS
+  MIN_IN_LEN = atoi(argv[19]);
+  MAX_IN_LEN = atoi(argv[20]);
+  scale_junction_count_by = atoi(argv[21]);
 
   //set parameters of the priors on log_lambda and log_epsilon                 
-  mu_e = atof(argv[21]);
-  var_e = atof(argv[22]);
+  mu_e = atof(argv[22]);
+  var_e = atof(argv[23]);
   sd_e = pow(var_e, 0.5);
-  sd_q = atof(argv[23]);
-  var_l = atof(argv[24]); ///?????????????
-  c = atof(argv[25]);
-  a = atof(argv[26]); // var_log_lambda\sim InvGamma(a,b)
-  b = atof(argv[27]);
+  sd_q = atof(argv[24]);
+  var_l = atof(argv[25]); ///?????????????
+  c = atof(argv[26]);
+  a = atof(argv[27]); // var_log_lambda\sim InvGamma(a,b)
+  b = atof(argv[28]);
 
-  utils = argv[28];
-  output2summary = argv[29];
+  utils = argv[29];
+  OVERHANG = atoi(argv[30]);
 
   LC = listCoordinate[lC - 1] - listCoordinate[0] + 1.;//length of the region       
   sumC = 0; for (unsigned int i = 0; i < N; i ++) sumC += C[i];
   //vector with the length of the intervals defined by listCoordinate    
   for (int i = 0; i < lC - 1; i ++) L.push_back((unsigned int) (listCoordinate[i + 1] - listCoordinate[i]));
   alphaSS = 1.;//dirichlet prior parameter for centers
-  if (argv[4] != "NA" && argv[5] != "NA"){
-    pos3 = i_tokenize(argv[4], ",", 1);
-    pos5 = i_tokenize(argv[5], ",", 1);                               
+  if (argv[5] != "NA" && argv[6] != "NA"){
+    pos3 = i_tokenize(argv[5], ",", 1);
+    pos5 = i_tokenize(argv[6], ",", 1);                               
   }
-  if (argv[6] != "NA" && argv[7] != "NA"){
-    neg3 = i_tokenize(argv[6], ",", 1);
-    neg5 = i_tokenize(argv[7], ",", 1);
+  if (argv[7] != "NA" && argv[8] != "NA"){
+    neg3 = i_tokenize(argv[7], ",", 1);
+    neg5 = i_tokenize(argv[8], ",", 1);
   }
   if (genePrediction == 1 || genePrediction == 0){
-    genePredOut = argv14;
+    genePredOut = argv15;
     genePredOut += "GenePredOut";
   }else 
     if (genePrediction == 2) 
       genePredOut = genePredFile;
-  
-  outfilellk = argv14;
-  outfilellk += "llkOut";
-  
-  outdatallk.open(outfilellk.c_str());
-  outfile1 = argv14;
-  outfile1 += "MC_output1";
-  outdata1.open(outfile1.c_str());
-  
+  if (VERBOSE==1){
+    outfilellk = argv15;
+    outfilellk += "llkOut";
+    outdatallk.open(outfilellk.c_str());
+  }
+  summary = argv15 + "summary.txt";
+  ExprOut = argv15 + "ExprOut";
   //Initialize random seed                                             
   rSeed = random_seed();
   gsl_rng_env_setup();
@@ -159,28 +158,6 @@ void Arguments::set0(unsigned int &my_pK, unsigned int &my_nK){
   gsl_matrix_scale(VAR_l, var_l);
 }
  
-void Arguments::set(unsigned int &my_pK, unsigned int &my_nK){
-  set0(my_pK, my_nK);
-  unsigned int PRINTED_STEPS = (unsigned int) ((double)MC_STEPS/(double)MC_THIN) - 1;
-  
-  run_output2summary = "source \"";
-  run_output2summary += utils;
-  run_output2summary += "\";";
-  run_output2summary += output2summary;
-  run_output2summary += " ";
-  run_output2summary += argv14;
-  run_output2summary += " ";
-  run_output2summary += ItoA(PRINTED_STEPS);
-  run_output2summary += " ";
-  run_output2summary += ItoA(pK);
-  run_output2summary += " ";
-  run_output2summary += ItoA(nK);
-  run_output2summary += " ";
-  run_output2summary += chr;
-  run_output2summary += " ";
-  run_output2summary += argv3;
-}
-
 void Arguments::set2(unsigned int &my_pK, unsigned int &my_nK){
   gsl_matrix_free(Z);
   gsl_matrix_free(VAR_q);

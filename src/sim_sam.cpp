@@ -27,20 +27,16 @@
 
 #include "utils.h"
 
-string my_SamFile = "accepted_hits.sam";
-
-
 int main(int argc, const char* argv[]){
 //Arguments:
-//GenepredFile
-//g_line=a string with the indexes for the transcipts in transcript file - separated by comma
-//output_folder
-//lambda1,lambda2,lambda3 
-//RL
-//M //the OVERHANG constraint; at least M bases are needed to map a spliced read
-//locusStart
-//locusEnd
-
+//GenePredFile : a string with path to the genepredFile
+//g_line : a string of comma separated integers specifying the lines in the genePred file
+//lambda : a string of comma separated doubles specifying lambda for each element of g_line
+//RL : an integer specifying read length
+//M : an integer specifying the OVERHANG constraint (at least M bases are needed to map a spliced read)
+//locusStart : integer
+//locusEnd : integer
+  
   //initialize random seed
   unsigned long int rSeed = random_seed();
   const gsl_rng_type* Tor;
@@ -49,44 +45,35 @@ int main(int argc, const char* argv[]){
   Tor = gsl_rng_default;
   rnd = gsl_rng_alloc(Tor);
   gsl_rng_set(rnd, rSeed);
-
+  
   //get arguments
-  unsigned int locusStart = atoi(argv[7]), locusEnd = atoi(argv[8]), tl, RL = atoi(argv[5]), M = atoi(argv[6]), \
+  unsigned int locusStart = atoi(argv[6]), locusEnd = atoi(argv[7]), tl, RL = atoi(argv[4]), M = atoi(argv[5]), \
     N = 1, K, Y, E, line = 0, MaxEx, read, sum;
   int cc = 0, rest;
-  string chr, GenePredLine, GenePredFile = argv[1], strand, s1, s2, s(RL, 'I'), SamFile = argv[3];
+  string chr, GenePredLine, GenePredFile = argv[1], strand, s1, s2, s(RL, 'I');
   vector<string> GenePredToken;
-  vector<unsigned int> g_line = i_tokenize(argv[2], ",", true), read_v, counter;
-  vector<double> lambda = f_tokenize(argv[4], ",", true);
-  ofstream SamFileOut;
+  vector<unsigned int> g_line = i_tokenize(argv[2], ",", true), read_v; //, counter;
+  vector<double> lambda = f_tokenize(argv[3], ",", true);
   ifstream ifs(GenePredFile.c_str());
-
+  
   //check arguments
   K = (unsigned int) lambda.size();
   if (K < 1){
-    cerr << "ERROR: provide a value for lambda\n";
+    cerr << "ERROR: specify a value for lambda\n";
     exit(1);
   }
   if (g_line.size() != K){
-    cerr << "ERROR: wrong input, number of components of lambda should be equal to total number of lines in GenePredFile\n";
+    cerr << "ERROR: wrong input, number of components of lambda should be equal to number of lines selected in the genePred file\n";
     exit(1);
   }
-
-  //set file names
-  SamFile += my_SamFile;
-  SamFileOut.open(SamFile.c_str());
-
+  
   //genePred file is in the 0-based coordinate system while sam file is in the 1-based coordinate system
   while (getline(ifs, GenePredLine)){
     line ++;
     for (unsigned int k = 0; k < K; k ++){
       tl = g_line[k];
-      if (tl < 1){
-	cerr << "Error: g_line must be a (strictly) positive integer\n";
-	exit(1);
-      }
       if (line == tl){
-	cout << "Simulating from transcript\n" << GenePredLine << "\n with lambda " << lambda[k] << "\n";
+	cerr << "Simulating reads from transcript\n" << GenePredLine << "\n with lambda " << lambda[k] << "\n";
 	
 	//get transcript k from line   
 	cc ++;
@@ -98,10 +85,9 @@ int main(int argc, const char* argv[]){
 	E = (unsigned int) ExSt.size();
 	
 
-	//print header
+	//print header (only once)
 	if (cc == 1)
-	  SamFileOut << "@HD\tVN:1.3\tSO:sorted" << endl << "@SQ\tSN:" << chr << "\tLN:" << locusEnd-locusStart+1 << endl;
-
+	  cout << "@HD\tVN:1.3\tSO:sorted" << endl << "@SQ\tSN:" << chr << "\tLN:" << locusEnd+1 << endl;
         
 	//define s1
 	s1 = "read_name\t";
@@ -117,19 +103,22 @@ int main(int argc, const char* argv[]){
 	s2 += s;
 	s2 += "\tNM:i:0\tNM:i:0\tNM:i:0\tNM:i:0\tNM:i:0\tNM:i:0\tNM:i:0\tNM:i:0";
         
-	//for each of the E exons in transcript k
+	//for each exon j of the E exons in transcript k
 	for (unsigned int j = 0; j < E; j ++){
 	 
 	  //generate reads with no junctions starting at position r with r in [ ExSt[j]+1,MaxEx ]
 	  MaxEx = max(ExSt[j] + 1, ExEn[j] - RL + 2);
 	  for (unsigned int r = ExSt[j] + 1; r < MaxEx; r ++){
 	    Y = (unsigned int) gsl_ran_poisson(rnd, lambda[k]);
-	    for (unsigned int y = 1; y <= Y; y ++)
-	      SamFileOut << s1 << r << "\t16\t" << RL << "M" << s2 << "\n";
+	    if (Y != 0){
+	      for (unsigned int y = 1; y <= Y; y ++)
+		cout << s1 << r << "\t16\t" << RL << "M" << s2 << "\n";
+	    }
 	  }
 	  if (j != E - 1){
 	    //generate reads with junctions
-	    counter.assign(E - j - 1, 0);
+	    
+            //counter.assign(E - j - 1, 0);
 	    MaxEx = max(ExSt[j] + 1, ExEn[j] - RL + M + 1 + 1);
 	    
 	    for (unsigned int r = MaxEx; r <= ExEn[j] - M; r ++){     
@@ -147,7 +136,7 @@ int main(int argc, const char* argv[]){
 		read_v.push_back(read);
 		rest -= read;
 	      }
-	      if (rest > 0) //the reads would extend over the end of the transcript; the read could not be emitted by transcript k 
+	      if (rest > 0) //the read would extend over the end of the transcript; the read could not be emitted by transcript k 
 		break;
 	      //if read overhang < M don't print read
               bool to_continue = 0;
@@ -163,19 +152,20 @@ int main(int argc, const char* argv[]){
 
 	      //print read to sam file
 	      Y = (unsigned int) gsl_ran_poisson(rnd, lambda[k]);
-	      for (unsigned int y = 1; y <= Y; y ++){
-		SamFileOut << s1 << r << "\t16\t";
-		
-		for (unsigned int jj = 0; jj < read_v.size(); jj ++){
-		  SamFileOut << read_v[jj] << "M";
+	      if (Y != 0){
+		for (unsigned int y = 1; y <= Y; y ++){
+		  cout << s1 << r << "\t16\t";
 		  
-		  if (!(read_v.size() > 1 && jj == (unsigned int) read_v.size() - 1)){
-		    counter[jj] += 1;
-		    SamFileOut << ExSt[j + 1 + jj] - ExEn[j + jj] << "N";	    
+		  for (unsigned int jj = 0; jj < read_v.size(); jj ++){
+		    cout << read_v[jj] << "M";
+		    
+		    if (!(read_v.size() > 1 && jj == (unsigned int) read_v.size() - 1)){
+		      //counter[jj] += 1;
+		      cout << ExSt[j + 1 + jj] - ExEn[j + jj] << "N";	    
+		    }
 		  }
+		  cout << s2 << "\tXS:A:" << strand << "\n";
 		}
-		SamFileOut << s2 << "\tXS:A:" << strand << "\n";
-     
 	      }
 	    }
 	  }
@@ -184,12 +174,11 @@ int main(int argc, const char* argv[]){
     }
   }
   if (line == 0)
-    cout<<"ERROR: the file " << GenePredFile << " is empty\n";
+    cerr << "ERROR: the file " << GenePredFile << " is empty\n";
 
   //free
   ifs.close();
   ifs.clear();
-  SamFileOut.close();
   gsl_rng_free(rnd);
   
   return 0;

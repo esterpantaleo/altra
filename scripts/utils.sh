@@ -131,6 +131,7 @@ function my_genePredLineToBed() {
 function genePredView(){
     if [[ $VERBOSE -eq 1 ]];then
         echo command line: "$FUNCNAME $@" >&2
+        echo "Reading GenePredFile" >&2
     fi
 
     if [ -z $1 ] || [ -z $2 ] ;then
@@ -399,8 +400,8 @@ function select_lines_randomly(){
     local _l
 
     if [[ $VERBOSE -eq 1 ]]; then
-	echo "Randomly select $_pK positive transcripts and $_nK negative transcripts \
-           from file $_GenePredIn" >&2
+        echo command line: "$FUNCNAME $@" >&2
+	echo "Randomly selecting $_pK positive transcripts and $_nK negative transcripts from file $_GenePredIn" >&2
     fi
 
     if [ $_pK -ge 1 ]; then
@@ -458,6 +459,7 @@ function select_lines_randomly(){
 function write_SSfile(){
     if [[ $VERBOSE -eq 1 ]];then
         echo command line: "$FUNCNAME $@" >&2
+        echo "Writing Splice Sites file" >&2
     fi
 
     if [ -z $1 ] || [ -z $2 ];then
@@ -514,6 +516,7 @@ function write_SSfile(){
 function write_lists(){
     if [[ $VERBOSE -eq 1 ]];then
         echo command line: "$FUNCNAME $@" >&2
+        echo "Writing list of Coordinates" >&2
     fi
 
     if [ -z $1 ] || [ -z $2 ] || [ -z $3 ] || [ -z $4 ];then
@@ -779,7 +782,8 @@ filter_JunctionsIn(){
     local _MINIMUM_J=$3
 
     if [[ $VERBOSE -eq 1 ]];then
-        echo "Filtering junctions..." >&2
+        echo command line: "$FUNCNAME $@" >&2
+        echo "Filtering junctions" >&2
     fi
     
     local _j_tmp=`mktemp`
@@ -823,6 +827,7 @@ function bitset2GenePred() {
   
     if [[ $VERBOSE -eq 1 ]];then
         echo command line: "$FUNCNAME $@" >&2
+        echo "Converting line $_which_line in file $_summary from a bitset to a GenePred file" >&2
     fi
 
     sed -n -e "$_which_line"p $_summary |  awk -v chrom="$_chr" -v listCoordinate="$_listCoordinate" -f $utils_awk --source '
@@ -839,89 +844,141 @@ function bitset2GenePred() {
     }'
 }
 
-#============== FUNCTION =========================== 
-#         NAME:     write_ExprOut 
-#  DESCRIPTION:     write ExprOut from MC_output1                                           
-#===================================================
-function write_ExprOut() {          
-    local _MC_output1=$1
-    local _N=$2
-    local _GenePredOut=$3
-
-    if [[ $VERBOSE -eq 1 ]];then
-        echo command line: "$FUNCNAME $@" >&2
-    fi
-
-    local _T=`cat $_GenePredOut | wc -l`
-    local _t
-    local _n
-
-    cat $_MC_output1 | awk  -v _n="$_N" -v _t="$_T"  '
-      BEGIN{for (i = 1; i <= NF; i ++){sum[i] = 0;   sumsq[i] = 0;}}
-      {     for (i = 1; i <= NF; i ++){sum[i] += $i; sumsq[i] += $i * $i;}}
-      END{for (individual = 0; individual < _n; individual ++){         
-            for (j = 1; j <= _t; j++)
-                printf("%s %s ", sum[individual * _t + j]/NR, sqrt(sumsq[individual * _t + j] / NR - (sum[individual * _t + j]/NR) ** 2)); 
-             printf("\n");}}' 
-    tail $_MC_output1 > $_MC_output1"_tail"
-    rm $_MC_output1
+#============== FUNCTION ===========================                                           
+#         NAME:     similarity_aux                                                                  
+#  DESCRIPTION:     reads in a (sorted) Bed file and returns the total length                  
+#                      of all the elements in the Bed file                                     
+#===================================================                                           
+similarity_aux(){
+    local var
+    while read var;do
+          echo $var
+    done | awk '                                                                               
+           BEGIN{                                                                              
+           i=0                                                                                 
+           }                                                                                   
+           {                                                                                   
+           i++;                                                                                
+           starts[i]=$2;                                                                       
+           ends[i]=$3;                                                                         
+           }                                                                                   
+           END{                                                                                
+           lI=0;                                                                               
+           for (j=1; j<=length(starts); j++)                                                   
+               lI+=ends[j]-starts[j];                                                          
+           print lI;                                                                           
+           }'
 }
 
-#============== FUNCTION ======================================================================
-#          NAME:      output2summary
-#   DESCRIPTION:      get output of altra.cpp MC and write summary.txt 
-#     ARGUMENTS:      OUTPUT_FOLDER MC_STEPS MC_THIN pK nK chr listCoordinate     
-#                     listCoordinate is a list of comma separated coordinates
-#==============================================================================================
-function output2summary(){
-    #get arguments
-    local _OUTPUT_FOLDER=$1
-    local _PRINTED_STEPS=$2
-    local _pK=$3
-    local _nK=$4
-    local _chr=$5
-    local _listCoordinate=$6
-    
-    #set file names
-    local _MC_output1=$_OUTPUT_FOLDER"MC_output"
-    local _GenePredOut=$_OUTPUT_FOLDER"GenePredOut"
-    local _summary=$_OUTPUT_FOLDER"summary.txt"
-    local _tmp_summary=$_OUTPUT_FOLDER"tmp_summary.txt"
-    local _tmp_output=$_OUTPUT_FOLDER"tmp_output"
-    
-    #write summary.txt                                                                    
-    #distinguish case there are only positive transcripts or only negative transcripts
-    #and case there are both positive transcripts and negative transcripts
-    local _grepheader
-    tail -n $_PRINTED_STEPS $_MC_output1 > $_tmp_output
-    while [[ `cat $_tmp_output | wc -w` -ne 0 ]];do
-	mv $_tmp_output $_MC_output1
-	if [[ $_pK -eq 0 ]] || [[ $_nK -eq 0 ]];then
-            _grepheader=`tail -1 $_MC_output1 | awk '{print $1}'`
-	else
-            _grepheader=`tail -1 $_MC_output1 | awk '{print $1,$2}'`
-	fi
-	cat $_MC_output1 | grep -- "$_grepheader[[:space:]]" | awk -v _gh="$_grepheader" -v _s="$_PRINTED_STEPS" '
-            BEGIN{printf("%s\t", _gh);sum=0;sumsq=0}                                              
-            {sum+=$NF; sumsq+=$NF*$NF}                                                                                                                                                                    
-            END{printf("%s\t%\t",NR*100/_s);printf("log_likelihood= %f sd=%f\n",sum/NR, sqrt(sumsq/NR-(sum/NR)**2))}                                          
-            ' >> $_tmp_summary
-	cat $_MC_output1 | grep -v -- "$_grepheader[[:space:]]" > $_tmp_output
-    done
-    #sort based on log likelihood 
-    if [[ $_pK -eq 0 ]] || [[ $_nK -eq 0 ]];then
-	sort -k 5,5nr $_tmp_summary
-    else
-	sort -k 6,6nr $_tmp_summary
-    fi > $_summary
-    #sorting the strands is necessary because altra first reads positive transcripts then negative transcripts                        
-    local _which_line=1
-    bitset2GenePred $_summary $_which_line $_chr $_listCoordinate | sort | uniq | sort -k 3,3r  > $_GenePredOut
 
-    #clean                                             
-    rm $_tmp_summary
-    rm $_tmp_output
-    rm $_MC_output1
+#============== FUNCTION ===========================                                        
+#         NAME:      similarity                
+#  DESCRIPTION:      If Argument 4 is provided: compute similarity between transcript at line line1 in      
+#                    file GenePred1 and transcript at line line2 in GenePred2              
+#                    If Argument 4 is not provided: compute similarity between transcript at line line1 in
+#                    file GenePred1 and transcripts in GenePred2
+#
+#Similarity between annotated transcript $T$ and discovered transcript $\tilde{T}$:
+#At the base level
+#S_n=\frac{n_{T\bigcap \tilde{T}}}{n_T}
+#S_p=\frac{TN}{TN-FP}
+#where $TN$ is the number of bases in the region minus number of bases in $T$.
+#\frac{Number of splice sites in $T$ and $\tilde{T}$}{Number of splice sites in $T$}.
+#\frac{Number of splice sites common to $T$ and the internal part of $\tilde{T}$}{Number of splice sites in $T$-2}
+#Sort 4 3 1 2
+#   ARGUMENT 1:      GenPred1 (string)                                                          
+#   ARGUMENT 2:      line1 (integer)                   
+#   ARGUMENT 3:      GenePred2 (string)                  
+#   ARGUMENT 4:      (optional) line2 (integer)                                           
+#===================================================
+function similarity(){
+    local _GenePred1=$1
+    local _line1=$2
+    local _GenePred2=$3
+    if [[ ! -z $4 ]]; then
+	local _line2=$4
+        #extract appropriate lines from _GenePred1 and _GenePred2
+	sed -n -e "$_line1"p $_GenePred1 | my_genePredLineToBed > $_GenePred1"_bed1"
+	sed -n -e "$_line2"p $_GenePred2 | my_genePredLineToBed > $_GenePred2"_bed2"
+
+	#at the base level                                                                 
+	#_LI is length of the intersection of the Bed files $GenePred1"_bed1" and $GenePred2"_bed2"        
+	local _LI=`multiIntersectBed -i $_GenePred1"_bed1" $_GenePred2"_bed2" | grep "1,2" | similarity_aux`
+	#_LE and _lE2 are the lengths (in bases) of the intervals in Bed files $_GenePred1"_bed1" and $_GenePred2"_bed2" respectively                                                                           
+	local _LE=`cat $_GenePred1"_bed1" | similarity_aux`
+	local _LE2=`cat $_GenePred2"_bed2" | similarity_aux`
+	#_LEN is the length (in bases) of the union of $_GenePred1"_bed1" and $_GenePred2"_bed2"       
+	#local _LEN=`cat $_GenePred1"_bed1" $_GenePred2"_bed2" | regionLengthBed`        
+	
+	#at the splice site level                                                  
+	#_starts1 is the list of 3' splice sites including the start                     
+	#_internalStarts2 is the list of 3' splice sites (excluding the start)            
+	local _starts1=`sed -n -e "$_line1"p $_GenePred1 | awk '{print $10}'`
+	local _starts2=`sed -n -e "$_line2"p $_GenePred2 | awk '{print $10}'`
+	local _ends1=`sed -n -e "$_line1"p $_GenePred1 | awk '{print $11}'`
+	local _ends2=`sed -n -e "$_line2"p $_GenePred2 | awk '{print $11}'`
+	local _starts1_v=(`echo ${_starts1//,/ }`)
+	local _starts2_v=(`echo ${_starts2//,/ }`)
+	#_E2 is the number of exons in $GenePred2"_bed2"                                  
+	local _E1=${#_starts1_v[@]}
+	local _E2=${#_starts2_v[@]}
+	#_TP is the number of common splice sites btw _GenePred1 and _GenePred2                              
+	local _TP=`numCommonSS $_starts1 $_starts2`
+	let _TP=$_TP+`numCommonSS $_ends1 $_ends2`
+	#_internalTp is the number of common start sites 
+	local _internalStarts1
+	local _internalEnds1
+	local _internalTP=0
+	if [ $_E1 -ne 1 ];then
+            _internalStarts1=`ListRemoveFirst $_starts1`
+            _internalEnds1=`ListRemoveLast $_ends1`
+            _internalTP=`numCommonSS $_starts2 $_internalStarts1`
+            let _internalTP=$_internalTP+`numCommonSS $_ends2 $_internalEnds1`
+	fi
+	local _li
+	local _le2
+	local _le
+	local _tp
+	echo " " | awk -v _li="$_LI" -v _le="$_LE" -v _le2="$_LE2" -v _tp="$_TP" \
+            -v _e2="$_E2" -v _internaltp="$_internalTP" '                                        
+           {                                                              
+           # TruePositive/(True Positive + FalseNegative) at the base level    
+           BLSn=_li/_le2                                                                   
+           # TrueNegative/(TruePositive + FalsePositive) or in the literature TruePositive/(TruePositive+FalsePositive)                                                                                        
+           BLSp=_li/_le                                                                                 
+           ELSn=_tp/(2*_e2)                                                                         
+           elsn=_internaltp/(2*_e2-2);                                                               
+           printf("%s %s %s %s",BLSn,BLSp,ELSn,elsn)                                
+           }'
+	rm $_GenePred1"_bed1"
+	rm $_GenePred2"_bed2"
+    else
+	local _ll=`cat $_GenePred2 | wc -l `
+	local _ff
+	local _s
+	for (( _ff=1; _ff<=$_ll; _ff++ ));do
+	    _s=`similarity $_GenePred1 $_line1 $_GenePred2 $_ff`
+	    echo $_ff $_s
+	done | sort -k 4,4n -k 3,3n -k 1,1n -k 2,2n | tail -1
+    fi
+}
+
+#============== FUNCTION ===========================                                   
+#         NAME:      printSimilarity                                                   
+#  DESCRIPTION:      print to sdout similarity between transcripts in GenePredOut              
+#                    and transcripts in GenePredIn for each transcript in GenePredOut                       
+#   ARGUMENT 1:      GenPredOut                                                            
+#   ARGUMENT 2:      GenePredIn (the reference genePred file)                                  
+#        USAGE:      printSimilarity GenepredOut GenePredIn > similarityFile
+#===================================================                                           
+function printSimilarity(){
+    local _GenePredOut=$1
+    local _GenePredIn=$2
+    local _l=`cat $_GenePredOut | wc -l `
+    local _ii
+    for (( _ii=1; _ii<=$_l; _ii++ ));do
+      similarity $_GenePredOut $_ii $_GenePredIn
+    done
 }
 
 function version () {
@@ -940,9 +997,9 @@ function help () {
     msg="altra: a Bayesian method for simultaneous transcript reconstruction and abundance estimation with RNA-Seq data in multiple samples.\n"
     msg+="\n"
     msg+="Usage: \n"
-    msg+="$0 -L <chr:locusStart-locusEnd> -r <folder1[,...,folderN]> -c <count1[,...,countN]> -a <int> -O <int>  -g <string> \n"
+    msg+="`basename $0` -L <chr:locusStart-locusEnd> -r <bamfile1[,...,bamfileN]> -c <count1[,...,countN]> -a <int> -O <int>  -g <string> \n"
     msg+="Example: \n"
-    msg+="$0 -L chr13:19875805-19998012 -r ind1,ind2,ind3,ind4 -c 7749699,11630601,10614370,35456718 -d 0 -y 5 -a 46 -O 9 -g annotations/knownGene_hg18.txt.gz,annotations/ensembl_4_30.gz \n"
+    msg+="`basename $0` -L chr13:19875805-19998012 -r ind1.bam,ind2.bam,ind3.bam,ind4.bam -c 7749699,11630601,10614370,35456718 -d 0 -y 5 -a 46 -O 9 -g annotations/knownGene_hg18.txt.gz,annotations/ensembl_4_30.gz \n"
     msg+="\n"
     msg+="Options:\n"
     msg+="  -h, --help\t\tDisplay the help and exit.\n"
@@ -950,17 +1007,16 @@ function help () {
     msg+="  -v, --verbose\n"
     msg+="  -L, --locus\t\t<chr:locusStart-locusEnd>\tA string specifying the region: chromosome:locusStart-locusEnd.\n"
     msg+="  -o, --out\t\t<string>\t\t\tSet the path to the output folder. Default output folder is ./out_altra/\n"
-    msg+="  -r, --samplesheet\t\tPath to a file with 3 columns specifying: sample ID (column 1), path to bam file containing reads for sample (column 2), total number of reads for sample (column 3); this file has N rows, one row for each sample. From the bam files altra will extract reads that start in the locus (more precisely that start between the start of the locus and the end of the locus minus the read length).\n"
+    msg+="  -c, --totalnreads\t\tA comma separated string of integers specifying the total number of reads for sample.\n"
+    msg+="  -r, --readfiles\t\tComma separated string of path to the bam files (in the future would like to replace this with a samplesheet with 3 columns specifying: sample ID (column 1), path to bam file containing reads for sample (column 2), total number of reads for sample (column 3); this file has N rows, one row for each sample. From the bam files altra will extract reads that start in the locus (more precisely that start between the start of the locus and the end of the locus minus the read length)).\n"
     msg+="  -a, --read_length\t<int>\t\t\t\tThe read length; all reads must have same length; altra will remove from the input GenePred file those transcripts that are shorter than the read length.\n"
     msg+="  -O, --overhang\t<int>\t\t\t\tThe overhang of the mapping method. Default value is 9.\n"
     
     msg+="\nOPTIONS ON THE TRANSCRIPT MODEL\n"
     msg+="By default altra simultaneously reconstructs the transcript model and estimates abundances (default option -G 1). In this case a (list) of (compressed) GenePred annotation files must be provided with option -g (see below for more details). Also in this case the number of transcripts in the transcript model must be provided using options -d and -y followed by the number of transcripts on the positive and negative strand, pK and nK, respectively: altra will (randomly) select pK and nK transcripts from the list of annotated transcripts in the locus.\nIf option -G 2 is set, altra will only estimate abundances for a fixed transcript model. In this case a GenePred file must be specified with option -f; option -F can be used to specify which lines in the provided GenePred file are to be used (if option -F is not provided, altra will use all the transcripts in the GenePred file).\n"
- 
-    msg+="  -f, --genepred_file\t\t<string>\t\tThis option should only be specified when -G 2, i.e., when the gene model is known and is therefore not reconstructed by altra. GenePred file containing the input transcript model; note that altra will cut the annotated transcripts if they extend beyond the locus (specified by option -L).\n"
-    msg+="  -F, --genepred_line\t\t<int1[,...,intG]>\tThis option should only be specified when -G 2, i.e., when the gene model is known and is therefore not reconstructed by altra. A comma separated string of integers that specify the lines in the GenePred file to be used.\n"
-    msg+="  -g, --genepred_annotation\t<file1[...,fileG]\tA comma separated list of annotation files in (compressed gz) GenePred format; from these genome-wide annotation files altra will extract transcripts that (partially) overlap with the locus and will remove identical transcripts in multiple annotations. altra will truncate the annotated transcripts if they extend beyond the locus (specified by option -L).\n"
     msg+="  -G, --genepred_initialization\t<default=1/2>\t\tReconstruct the transcript model(1); assume the transcript model is known and only estimate abundances(2).\n"
+    msg+="  -f, --genepred_file\t\t<string>\t\tThis option should only be specified when -G 2, i.e., when the gene model is known and is therefore not reconstructed by altra. GenePred file containing the input transcript model; note that altra will cut the annotated transcripts if they extend beyond the locus (specified by option -L).\n"
+    msg+="  -g, --genepred_annotation\t<file1[...,fileG]\tThis option should only be specified when -G 1, i.e., when altra the gene model is unknown. A comma separated list of annotation files in (compressed gz) GenePred format; from these genome-wide annotation files altra will extract transcripts that (partially) overlap with the locus and will remove identical transcripts in multiple annotations. altra will truncate the annotated transcripts if they extend beyond the locus (the locus is specified by option -L).\n"
     msg+="  -s, --minimum_exon_length\t<int>\t\t\tMinimum exon length: for each transcript in the GenePred file, if the lenght of an exon is less than the minimum exon length, altra will remove that exon. Default value is 10. The minimum exon length cannot be smaller than the overhang provided with option -O. \n"
     msg+="  -S, --maximum_exon_length\t<int>\t\t\tMaximum exon length. Default value is 3000. If the annotated GenePred file contains an exon that is longer than the minimum exon length provided with option -s, then the value of this parameter will be progressively increased until it is larger than the annotated exon.\n"
     msg+="  -z, --minimum_intron_length\t<int>\t\t\tMinimum intron length: for each intron in the GenePred file, if the intron length is less than the minimum intron lenght (provided with option -z) altra will merge adjacent exons in the GenePred file. Default value is 50.\n"
@@ -997,8 +1053,8 @@ function help () {
     msg+="BED format: see http://genome.ucsc.edu/FAQ/FAQformat.html#format1\n"
     msg+="BAM format: see http://genome.ucsc.edu/FAQ/FAQformat.html#format5.1 Note: reads that map with junctions must have the XS attribute tag as in Tophat output.\n"
     msg+="\n"
-    msg+="summary.txt This file contains the list of explored gene models (in a format internal to altra) with the posterior frequency of each gene model. Function bitset2GenePred in utils.sh can be used to convert a line of summary.txt into a GenePred file.\n"
-   
+    msg+="summary.txt This file contains the list of explored gene models (in a format internal to altra) with the posterior percentage probability of each gene model. Function bitset2GenePred in utils.sh can be used to convert a line of summary.txt into a GenePred file.\n"
+    msg+="ExprOut contains a N by 2*(pK+nK+1) table with estimated posterior mean and standard deviation for lambda and epsilon. Even columns contain the posterior mean for each transcript, odd colums contain the posterior standard deviation for each transcipt, the first 2*(pK+nK) columns report lambda, the last two columns report epsilon. Different samples are reported on different lines.\n"    
     echo -e "$msg" 
 }
 
@@ -1018,7 +1074,6 @@ function parseArgs () {
             -a|--read_length) RL=$2; shift 2;;
 	    -O|--overhang) OVERHANG=$2; shift 2;;
 	    -f|--genepred_file) GenePredIn=$2; shift 2;;
-	    -F|--genepred_line) g_line=$2; shift 2;;
 	    -g|--genepred_annotation) GenePredReference=$2; shift 2;;
 	    -G|--genepred_initialization) genePrediction=$2; shift 2;;
 	    -s|--minimum_exon_length) MIN_EX_LENGTH=$2; shift 2;;
@@ -1070,7 +1125,7 @@ function parseArgs () {
     if [[ "$last" != "/" ]]; then
 	JOB_FOLDER=$JOB_FOLDER"/"
     fi
-    echo JOB_FOLDER=$JOB_FOLDER >&2
+    echo "Writing output to $JOB_FOLDER" >&2
     
     if [[ -z $readfiles ]]; then
 	echo "ERROR: specify path to BAM files using option -r" >&2
@@ -1093,10 +1148,6 @@ function parseArgs () {
 	    echo "ERROR: option -g is incompatible with (default) option -G 1" >&2
 	    exit 1
 	fi
-	if [[ ! -z $g_line ]]; then
-	    echo "ERROR: option -F is incompatible with (default) option -G 1" >&2
-            exit 1
-        fi
 	if [[ -z $pK || -z $nK ]]; then
 	   echo "ERROR: specify the number of transcripts using options -d and -y" >&2
 	   exit 1

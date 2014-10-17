@@ -15,6 +15,7 @@ public:
   gsl_vector *L;
   gsl_matrix *Xproposed;
   gsl_vector *Lproposed;
+  boost::dynamic_bitset<> z; // the TranscriptModel as a bitset
   vector<boost::dynamic_bitset<> > pZ, nZ, uZ, pZproposed, nZproposed, uZproposed, pZproposed2, nZproposed2, uZproposed2;
   vector<ProposedTranscript> proposedTranscripts;
    
@@ -43,6 +44,10 @@ public:
   void print_L();
   void print(string strand, Centers &centers, Arguments &A);
   void print_to_Abuffer(const double &ll, Arguments &A);
+  void to_z_utils(Centers &centers, unsigned int & K, unsigned int & lC, std::stringstream& ss);
+  void to_z(Arguments & A);
+
+
 };
 
 #endif

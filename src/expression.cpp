@@ -60,7 +60,7 @@ void init_log_lambda_v(gsl_vector* log_lambda, Arguments &A){
   gsl_vector_free(Var_l);
 }
 
-void update_lambda(gsl_vector* lambda, gsl_vector* log_lambda, double &epsilon, double &log_epsilon, TranscriptModel &transcriptModel, double &ll, Arguments &A){
+void update_lambda(gsl_vector* lambda, gsl_vector* log_lambda, double &epsilon, double &log_epsilon, TranscriptModel &transcriptModel, double &ll, allReads& reads, Arguments &A){
   double f = 1. + (double) A.N * A.c, d = A.c / f, alpha, m, s2, v, tmp, sn2, m2, llproposed;
   gsl_vector* log_gamma = gsl_vector_alloc(A.N * A.K);
   gsl_vector* gamma = gsl_vector_alloc(A.N * A.K);
@@ -92,7 +92,7 @@ void update_lambda(gsl_vector* lambda, gsl_vector* log_lambda, double &epsilon, 
       gsl_vector_memcpy(gamma, lambda);
       gsl_vector_set(gamma, A.K * i + k, exp(gsl_vector_get(log_gamma, A.K * i + k)));
 
-      llproposed = log_likelihood(gamma, epsilon, log_epsilon, transcriptModel.X, transcriptModel.L, A);
+      llproposed = log_likelihood(gamma, epsilon, log_epsilon, transcriptModel.X, transcriptModel.L, reads, A);
       alpha = llproposed - ll;
       alpha += diff_lln(log_lambda, log_gamma, log_lambda_bar, Var_l, k, i, A);
       alpha = min(0., alpha);
@@ -114,12 +114,12 @@ void update_lambda(gsl_vector* lambda, gsl_vector* log_lambda, double &epsilon, 
   return;
 }
 
-void update_epsilon (gsl_vector* lambda, double &epsilon, double &log_epsilon, TranscriptModel &transcriptModel, double &ll, Arguments &A){
+void update_epsilon (gsl_vector* lambda, double &epsilon, double &log_epsilon, TranscriptModel &transcriptModel, double &ll, allReads &reads, Arguments &A){
   double log_delta, delta, alpha, llproposed;
   log_delta = log_epsilon + gsl_ran_gaussian(A.rnd, A.sd_q);
   delta = exp(log_delta);
   //calculate alpha                                           
-  llproposed = log_likelihood(lambda, delta, log_delta, transcriptModel.X, transcriptModel.L, A);
+  llproposed = log_likelihood(lambda, delta, log_delta, transcriptModel.X, transcriptModel.L, reads, A);
   alpha = llproposed - ll;
   alpha += 0.5 * (log_epsilon * log_epsilon - log_delta * log_delta - 2. * A.mu_e * (log_epsilon - log_delta)) / A.var_e;
   alpha = min(0., alpha);

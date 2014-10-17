@@ -55,6 +55,8 @@
 #include <gsl/gsl_multimin.h>
 #include <boost/dynamic_bitset.hpp>
 #include <iomanip>
+#include <map>
+#include <utility>
 
 using namespace std;
 

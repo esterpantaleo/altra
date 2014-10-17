@@ -175,7 +175,7 @@ TranscriptModel::TranscriptModel(string &genePredFile, allReads &reads, Argument
   negCenters.init(genePredFile, A);
   
   //set K, A.K, A.pK, A.nK, A.powK, Z                                            
-  A.set(posCenters.K, negCenters.K);
+  A.set0(posCenters.K, negCenters.K);
   K = A.K;
   
   //init L and X                       
@@ -298,9 +298,9 @@ void TranscriptModel::accept_reject(allReads &reads, Reads &my_pos, Reads &my_ne
       return;
     }
   }
-  
+
   setXproposed(reads, my_pos, my_neg, my_pZ, my_pZproposed, my_nZ, AK, A);    
-  llproposed = log_likelihood(lambda, epsilon, log_epsilon, Xproposed, Lproposed, A);
+  llproposed = log_likelihood(lambda, epsilon, log_epsilon, Xproposed, Lproposed, reads, A);
   
   alpha = llproposed;
   alpha -= ll;
@@ -433,7 +433,7 @@ void TranscriptModel::print(string strand, Centers &centers, Arguments &A){
     
     for (it = my_transcripts.begin(); it != my_transcripts.end(); ++ it)
       A.buffer << it -> z << ",";
-      A.buffer << " ";
+    A.buffer << " ";
   }
 }
 
@@ -441,5 +441,35 @@ void TranscriptModel::print_to_Abuffer(const double &ll, Arguments &A){
   print("+", posCenters, A);
   print("-", negCenters, A);
   A.buffer << fixed << ll << "\n";
+}
+
+///////////////////////////////////
+void TranscriptModel::to_z_utils(Centers &centers, unsigned int & K, unsigned int & lC, std::stringstream& ss){
+  unsigned int my_size, rest;
+  //make a copy because I'm resizing
+  vector<Transcript> my_transcripts = centers.transcripts;
+  vector<Transcript>::iterator it;
+  sort(my_transcripts.begin(), my_transcripts.end());
+  it = unique(my_transcripts.begin(), my_transcripts.end());
+  my_size = (unsigned int) (it - my_transcripts.begin());
+  my_transcripts.resize(my_size);
+  for (vector<Transcript>::iterator it = my_transcripts.begin();
+       it !=  my_transcripts.end();
+       ++ it)
+    ss << (it -> z);
+  rest = K - my_size;
+  if (rest > 0)
+    for (unsigned int i=0; i<rest; i++)
+      for (unsigned int j=0; j<lC-1; j++)
+	ss << "0";
+}
+void TranscriptModel::to_z(Arguments & A){
+  std::stringstream ss;
+  if (A.pK>0)
+    to_z_utils(posCenters, A.pK, A.lC, ss);
+  if (A.nK>0)
+    to_z_utils(negCenters, A.nK, A.lC, ss);
+
+  TranscriptModel::z=boost::dynamic_bitset<> (ss.str()); 
 }
 

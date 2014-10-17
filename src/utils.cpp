@@ -113,9 +113,9 @@ void rmvnorm(const gsl_rng *r, const gsl_matrix *V, gsl_vector *r_sample){
 }
 
 string ItoA(unsigned int &my_int){
-  stringstream ssout;
-  ssout<<my_int;
-  return ssout.str();
+  stringstream ss;
+  ss << my_int;
+  return ss.str();
 }
 
 //compute gamma from log_gamma                                                     

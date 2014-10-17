@@ -157,12 +157,15 @@ allReads::allReads (Arguments &A){
   neg.size+=1;
   uns.size+=1;
   
-  cout<<"pos: \n";
-  pos.print();
-  cout<<"neg: \n";
-  neg.print();
-  cout<<"uns: \n";
-  uns.print();
+  if (A.VERBOSE){
+    cout << "printing positive, negative and unsigned read types in a format internal to altra:" << endl;
+    cout<<"pos: \n";
+    pos.print();
+    cout<<"neg: \n";
+    neg.print();
+    cout<<"uns: \n";
+    uns.print();
+  }
   //scale reads with junctions
   if (A.scale_junction_count_by != 1){
     for (unsigned int i = 0; i < A.N; i ++){
