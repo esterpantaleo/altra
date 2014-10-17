@@ -12,8 +12,8 @@ redistributed in proprietary programs.
 
 This library is distributed in the hope that it will be useful, but
 WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE
+.
 ####Dependences
 
 Installation instructions below assume that the *bedtools* and *samtools* are in your path and that the *gsl* and *boost dynamic_bitset* are installed on your system. Also the software uses *R* and the R package [*FLLat*](http://cran.r-project.org/web/packages/FLLat/index.html).
@@ -26,18 +26,18 @@ To install the package, clone the repository in *~/src/altra*, then:
     make all
     make check
 
-and put folder *~/src/altra/scripts* in your PATH by adding the following lines to your *~/.bashrc* file:
+and put folder *~/src/altra/scripts* in your `PATH` by adding the following lines to your *~/.bashrc* file:
 
     export PATH=$PATH":$HOME/src/altra/scripts/"
 
-After adding new lines to your *.bashrc* for the first time, remember to either login again, or do
+After adding this line to your *.bashrc*, remember to either login again, or do
 
     source ~/.bashrc
 
 
-###Usage
+####Usage
 
-To print the usage run altra with option -h:
+To print the usage run **altra* with option `-h`:
 
     altra -h
 
