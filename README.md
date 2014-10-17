@@ -16,7 +16,7 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE
 .
 ####Dependences
 
-Installation instructions below assume that the *bedtools* and *samtools* are in your path and that the *gsl* and *boost dynamic_bitset* are installed on your system. Also the software uses *R* and the R package [*FLLat*](http://cran.r-project.org/web/packages/FLLat/index.html).
+Installation instructions below assume that the [*bedtools*](https://github.com/arq5x/bedtools2) and [*samtools*](http://samtools.sourceforge.net/) are in your `PATH` and that the [*gsl*](http://www.gnu.org/software/gsl/) and [*boost dynamic_bitset*](http://www.boost.org/doc/libs/1_36_0/libs/dynamic_bitset/dynamic_bitset.html) are installed on your system. Also the software uses *R* and the R package [*FLLat*](http://cran.r-project.org/web/packages/FLLat/index.html).
 
 ####Installation
 
