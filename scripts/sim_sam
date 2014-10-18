@@ -76,7 +76,7 @@ sim_sam generates reads of a specific length (specified by option -R) for a samp
 
 usage: $0 options
        OPTIONS:
-       -o <file>                                           Specify the path to the output bam file
+       -o <file>                                           Specify the path to the output bam file 
        -g <file>                                           Specify the name of the GenePred file containing the gene model
        -L <chr:locusStart-locusEnd>                        A string with the name of the chromosome\":\"locusStart-locusEnd
        -R <int>                                            Read length
@@ -143,13 +143,14 @@ simulate_data() {
         mkdir $OUTPUT_FOLDER
     fi
 
+    BamPrefix=`dirname ${BamOut}`"/"`basename ${BamOut} .bam`
     # generate bam file and index it
     echo "Starting simulation:"
-    echo $sim_sam ${GenePredIn} BamOut=${BamOut}".sam" lambda=${lambdas} RL=${RL} OVERHANG=${OVERHANG} chr=${chr} locusStart=${locusStart} locusEnd=${locusEnd}
-    $sim_sam ${GenePredIn} ${BamOut}".sam" ${lambdas} ${RL} ${OVERHANG} ${chr} ${locusStart} ${locusEnd}
-    ${SAMTOOLS} view -bSh ${BamOut}".sam" | ${SAMTOOLS} sort - ${BamOut}
-    rm ${BamOut}".sam"
-    ${SAMTOOLS} index ${BamOut}
+    echo $sim_sam ${GenePredIn} BamOut=${BamPrefix}".sam" lambda=${lambdas} RL=${RL} OVERHANG=${OVERHANG} chr=${chr} locusStart=${locusStart} locusEnd=${locusEnd}
+    $sim_sam ${GenePredIn} ${BamPrefix}".sam" ${lambdas} ${RL} ${OVERHANG} ${chr} ${locusStart} ${locusEnd}
+    ${SAMTOOLS} view -bSh ${BamPrefix}".sam" | ${SAMTOOLS} sort - ${BamPrefix}
+    rm ${BamPrefix}".sam"
+    ${SAMTOOLS} index ${BamPrefix}".bam"
 }
 
 ########CHECK ARGUMENTS
