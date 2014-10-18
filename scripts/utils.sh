@@ -387,7 +387,7 @@ function ListRemoveLast(){
 
 #============== FUNCTION ===========================                         
 #         NAME:      select_lines_randomly                                     
-#  DESCRIPTION:      select lines randomly from file $1
+#  DESCRIPTION:      select lines randomly from file $1 with repetition
 #   ARGUMENT 1:      the input GenePred file      
 #   ARGUMENT 2:      the log file
 #         NOTE:      modifies nK and pK
