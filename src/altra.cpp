@@ -190,24 +190,21 @@ int main (int argc, const char* argv[]){
     update_epsilon(lambda, epsilon, log_epsilon, optimalTranscriptModel, ll, reads, A);
    
     //MC step
-    if (A.VERBOSE==1)
-      if (step > A.MC_BURNIN)
-	if (step % A.MC_THIN == 0){
-	  vector<double> lambda_vector;
-	  for (unsigned int i = 0; i < A.N; i ++){    
-	    for (unsigned int k = 0; k < A.K; k ++){
-	      lambda_vector.push_back(gsl_vector_get(lambda, A.K * i + k));
-	    }
-	  }
-          lambdas.push_back(lambda_vector);
-	  epsilons.push_back(epsilon);
-	  //clean
-	  lambda_vector.clear();
-	}
-    //print loglikelihood
-    if (A.VERBOSE){
-       if (step % 10 == 0) A.outdatallk << ll << "\n";
-    }
+    if (step > A.MC_BURNIN)
+      if (step % A.MC_THIN == 0){
+	vector<double> lambda_vector;
+	for (unsigned int i = 0; i < A.N; i ++)   
+	  for (unsigned int k = 0; k < A.K; k ++)
+	    lambda_vector.push_back(gsl_vector_get(lambda, A.K * i + k));
+	lambdas.push_back(lambda_vector);
+	epsilons.push_back(epsilon);
+	//clean
+	lambda_vector.clear();
+      
+	//print loglikelihood
+	if (A.VERBOSE)
+	  A.outdatallk << ll << "\n";
+      }
   }
 
   //print final state

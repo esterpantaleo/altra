@@ -41,9 +41,12 @@ last_Beta       <- NULL
 my_coordinate3  <- locusStart
 my_coordinate5  <- locusStart
 
+if (ncol(h_matrix)==1)
+    h_matrix=cbind(h_matrix[,1],h_matrix[,1]+abs(rnorm(nr,0,0.01)))
 for (j in 1:ceiling(nr/MAX_NROW)){ 
     h           <- as.matrix(h_matrix[start:min(nr, start + MAX_NROW - 1),])
-    trial       <- try(result  <- FLLat(h, J=1, B="pc", lam1=l1, lam2=l2), silent=TRUE)
+    h
+    trial       <- try(result  <- FLLat(h, J=1, B="pc", lam1=l1, lam2=l2), silent=FALSE)
     if (class(trial) != "try-error"){ #if there is no error
     	my_Beta <- c(last_Beta, result$Beta)
     	if (j==1){

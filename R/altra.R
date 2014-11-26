@@ -27,18 +27,21 @@ JunctionFile       <- file.path(outputFolder,"JunctionOut")
 BreakpointFile     <- file.path(outputFolder,"BreakpointOut")
 CoverageFile       <- file.path(outputFolder,"Coverage")
 source(sourceFile)
-
 #*************************************************************************
 #
 #     set variables
 #
 #************************************************************************
 individualExprOut  <- as.matrix(readTableNumbers(ExprFile), byrow=TRUE)
-colExp             <- ncol(individualExprOut)-2
-individualExprOut  <- as.matrix(individualExprOut[,seq(1, colExp, 2)],nrow=N,ncol=colExp/2)
+colExp             <- ncol(individualExprOut) - 2
+individualExprOut  <- as.matrix(individualExprOut[,seq(1, colExp, 2)], nrow=N, ncol=colExp/2)
 NORM               <- sum(C) / N
 individualExprOut  <- individualExprOut * C / NORM 
-ifelse(N==1, ExprAverage <- individualExprOut, ExprAverage <- colMeans(individualExprOut))
+if (N==1){
+  ExprAverage <- individualExprOut
+}else{
+  ExprAverage <- colMeans(individualExprOut)
+}
 
 #*************************************************************************
 #
@@ -95,22 +98,25 @@ coverages <- read.table(CoverageFile, header=FALSE, comment.char="")
        
 
 pdf(file=paste0(outputFolder, "Coverage.pdf"))
+
 par(mar=c(1,1,1,1), mfrow=c(9,1), oma=c(1,1,1,1))
 if (N==1){
     #plotting coverage
     my_title <- ""
     plotJunctions(junctions, strands, positions, 1, locusStart, locusEnd)
     plotBreakpoints(BreakpointFile, locusStart, locusEnd)
-    areaRelativeDifference <- plotCoverage(GenePredOut, individualExprOut, locusStart, locusEnd, RL, M, my_title, unlist(coverages[1], use.names=FALSE))
-    write(areaRelativeDifference, append=TRUE, file=paste0(outputFolder, "areaRelativeDifference.txt"))
+    areaRelativeDifference <- plotCoverage(GenePredOut, individualExprOut, locusStart, locusEnd, RL, M, my_title, unlist(coverages, use.names=FALSE))
+    write(areaRelativeDifference, append=FALSE, file=file.path(outputFolder, "areaRelativeDifference.txt"))
 }else{
+    outputfile <- file.path(outputFolder, "areaRelativeDifference.txt")
+    file.remove(outputfile)
     for (i in 1:N){
         print(paste("plotting coverage for individual",i))
         my_title <- i
         plotJunctions(junctions, strands, positions, i, locusStart, locusEnd)
         plotBreakpoints(BreakpointFile, locusStart, locusEnd)
         areaRelativeDifference <- plotCoverage(GenePredOut, individualExprOut[i,], locusStart, locusEnd, RL, M, my_title, unlist(coverages[i,],use.names=FALSE))
-        write(areaRelativeDifference, append=TRUE, file=paste0(outputFolder, "areaRelativeDifference_", i, ".txt"))
+        write(paste0(areaRelativeDifference," "), append=TRUE, outputfile)
     }
 }
 dev.off()

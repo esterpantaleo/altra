@@ -69,7 +69,7 @@ function sam_start_cigar2vector_intervals(CIGAR, start, read){
 #####################################################################                       
 #       definition of function bitset2GenePred                                                
 #####################################################################                          
-function bitset2GenePred(bitsets,listCoordinate,chrom){                              
+function bitset2GenePred(bitsets, listCoordinate, chrom, ll){                              
   T = split(bitsets,transcript, ",") - 1;                                                    
   C = split(listCoordinate, l , ",");                                                          
   for (k = 2; k <= T; k ++){                                                                     
@@ -82,7 +82,7 @@ function bitset2GenePred(bitsets,listCoordinate,chrom){
       continue;                                                                             
     counter = 0;                                                           
     delete list;                                                                                   
-    printf("NA\t%s\t%s\t", chrom, transcript[1]);                                             
+    printf("altra.%s.%s.%s.%s\t%s\t%s\t", chrom, l[1], l[C], ll, chrom, transcript[1]);                                             
     if (substr(transcript[k], 1, 1) == "1"){                                              
       counter ++;                                                                          
       list[counter] = l[1] - 1 + 0.5;                                                        

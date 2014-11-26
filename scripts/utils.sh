@@ -1,4 +1,3 @@
-
 # \file utils.sh
 #
 
@@ -245,7 +244,7 @@ function genePredView(){
                        BEGIN{counter = 0}                                   
                        {                                              
                           counter++;                                     
-                          if ($2 == _chrom && (($4 >= _regStart && $4 < _regEnd)||($5 > _regStart && $5 <= _regEnd)))     
+                          if ($2 == _chrom && (($4 >= _regStart && $4 < _regEnd)||($5 > _regStart && $5 <= _regEnd)||($4 <= _regStart  &&  $5 >= _regEnd)))     
                              printf("%s,",counter)               
                        }'
 		    ;;
@@ -254,7 +253,7 @@ function genePredView(){
                             -v _regStart="$_locusStart" -v _regEnd="$_locusEnd" -v _chrom="$_chr" '                 
                         BEGIN{OFS = "\t"}
                         {                                             
-                           if ($2 == _chrom && (($4 >= _regStart && $4 < _regEnd)||($5 > _regStart && $5 <= _regEnd))) 
+                           if ($2 == _chrom && (($4 >= _regStart && $4 < _regEnd)||($5 > _regStart && $5 <= _regEnd)||($4 <= _regStart  &&  $5 >= _regEnd))) 
                               print $1, $2, $3, $4, $5, $6, $7, $8, $9, $10              
                         }'
 		    ;;
@@ -268,7 +267,7 @@ function genePredView(){
                         zcat $_i | awk \
                             -v _regStart="$_locusStart" -v _regEnd="$_locusEnd" -v _chrom="$_chr" '
                             {                                                
-                               if ($2 == _chrom && (($4 >= _regStart && $4 < _regEnd)||($5 > _regStart && $5 <= _regEnd))) 
+                               if ($2 == _chrom && (($4 >= _regStart && $4 < _regEnd)||($5 > _regStart && $5 <= _regEnd)||($4 <= _regStart  &&  $5 >= _regEnd))) 
                                   print $0                                   
                             }'
                     done | sort -k 9,9 -k 10,10 | awk '                                          
@@ -825,22 +824,22 @@ function bitset2GenePred() {
     _chr=$3    
     _listCoordinate=$4
   
-    if [[ $VERBOSE -eq 1 ]];then
-        echo command line: "$FUNCNAME $@" >&2
-        echo "Converting line $_which_line in file $_summary from a bitset to a GenePred file" >&2
+    if [[ ${VERBOSE} -eq 1 ]];then
+        echo command line: "${FUNCNAME} $@" >&2
+        echo "Converting line ${_which_line} in file ${_summary} from a bitset to a GenePred file" >&2
     fi
 
-    sed -n -e "$_which_line"p $_summary |  awk -v chrom="$_chr" -v listCoordinate="$_listCoordinate" -f $utils_awk --source '
+    sed -n -e "${_which_line}"p ${_summary} |  awk -v chrom="${_chr}" -v listCoordinate="${_listCoordinate}" -v ll="${_which_line}" -f ${utils_awk} --source '
     {
        #first field in summary is a set of transcripts in bitset format
        #convert first field into GenePred format
-       bitset2GenePred($1, listCoordinate, chrom)
+       bitset2GenePred($1, listCoordinate, chrom, ll)
 
        #check if also second field is a set of transcripts in bitset format
        split($2, transcript, ",")
        #if so convert second field into GenePred format
        if (transcript[1] == "-")  
-          bitset2GenePred($2, listCoordinate, chrom)
+          bitset2GenePred($2, listCoordinate, chrom, ll)
     }'
 }
 

@@ -36,11 +36,11 @@
 #****************************************************************************************#  
 
 INTERSECT=intersectBed
-hash $INTERSECT 2>/dev/null || { echo >&2 "bedtools $INTERSECT is required but not installed. Aborting."; exit 1; }
+hash ${INTERSECT} 2>/dev/null || { echo >&2 "bedtools ${INTERSECT} is required but not installed. Aborting."; exit 1; }
 COVERAGEBED=coverageBed
-hash $COVERAGEBED 2>/dev/null || { echo >&2 "bedtools $COVERAGEBED is required but not installed. Aborting."; exit 1; }
+hash ${COVERAGEBED} 2>/dev/null || { echo >&2 "bedtools ${COVERAGEBED} is required but not installed. Aborting."; exit 1; }
 SAMTOOLS=samtools
-hash $SAMTOOLS 2>/dev/null || { echo >&2 "$SAMTOOLS is required but not installed. Aborting."; exit 1; }
+hash ${SAMTOOLS} 2>/dev/null || { echo >&2 "${SAMTOOLS} is required but not installed. Aborting."; exit 1; }
 
 
 #================== FUNCTION ============================================================= 
@@ -53,7 +53,7 @@ function absdir() {
 if [[ -n "$1" ]] ; then
     if [[ -d $1 ]] ; then
         pushd $1 2>&1 >/dev/null;
-        echo $PWD;
+        echo ${PWD};
         popd 2>&1 >/dev/null;
     else
         dname=`dirname $1`;
@@ -70,14 +70,14 @@ fi
 #   transform the relative path to an absolute path.                                  
 #-----------------------------------------------------------------------------------------
 BASEDIR=`dirname ${BASH_SOURCE-$0}`
-BASEDIR=`absdir $BASEDIR`           
+BASEDIR=`absdir ${BASEDIR}`           
 
 src_altra=${BASEDIR}"/../src/altra"
 altra_R=${BASEDIR}"/../R/altra.R"
 utils=${BASEDIR}"/utils.sh"
 utils_awk=${BASEDIR}"/utils.awk"
 breakpoints_R=${BASEDIR}"/../R/breakpoints.R"
-source $utils 
+source ${utils} 
 
 #-----------------------------------------------------------------------------------------
 #   Set default arguments                              
@@ -120,7 +120,7 @@ scale_junction_count_by=1
 
 breakpoints=1
 
-JOB_ID=$RANDOM
+JOB_ID=${RANDOM}
 
 MU_E="-4.";
 
@@ -141,11 +141,11 @@ OVERHANG=9
 #-----------------------------------------------------------------------------------------
 #   Parse arguments
 #-----------------------------------------------------------------------------------------
-if [[ $VERBOSE -eq 1 ]];then
+if [[ ${VERBOSE} -eq 1 ]];then
     echo Parsing arguments of $0...
 fi
 parseArgs "$@"
-logFile=$JOB_FOLDER"log.out"
+logFile=${JOB_FOLDER}"log.out"
 
 #-----------------------------------------------------------------------------------------
 #   Write GenePredInitialState (the initial state of the gene model):
@@ -155,43 +155,35 @@ logFile=$JOB_FOLDER"log.out"
 #   if (number of removed exons == number of exons) remove transcript  
 #   if (genes overlapping $LOCUS extend farther than $LOCUS) truncate them
 #-----------------------------------------------------------------------------------------
-GenePredOut=$JOB_FOLDER"GenePredOut"
-GenePredInitialState=$JOB_FOLDER"GenePredInitialState"
-GenePredInFiltered=$JOB_FOLDER"GenePredInFiltered"
-GenePredInCut=$JOB_FOLDER"GenePredInCut"
+GenePredOut=${JOB_FOLDER}"GenePredOut"
+GenePredInitialState=${JOB_FOLDER}"GenePredInitialState"
+GenePredInFiltered=${JOB_FOLDER}"GenePredInFiltered"
+GenePredInCut=${JOB_FOLDER}"GenePredInCut"
 
-if [ $genePrediction -eq 2 ]; then
+if [ ${genePrediction} -eq 2 ]; then
     #in this case altra will not infer the gene model
     #but will use the gene model specified with option -f
-    if [[ -z $GenePredIn ]];then
-    echo "ERROR: provide GenePred file with option -f" >&2 
-    exit 1  
+    if [[ -z ${GenePredIn} ]];then
+	echo "ERROR: provide GenePred file with option -f" >&2 
+	exit 1  
     fi
-    if [[ ! -z $g_line ]];then
-    for l in `echo ${g_line//,/ }`;do
-        sed -n -e "$l"p < $GenePredIn
-	done 
-    else
-    cat $GenePredIn
-    fi > $GenePredIn"_tmp"
-    genePredView $GenePredIn"_tmp" "filter" $MIN_IN_LEN $MIN_EX_LEN $RL > $GenePredInFiltered
-    genePredView $GenePredInFiltered $LOCUS "cut" > $GenePredInCut
-    cp $GenePredInCut $GenePredInitialState
-    cp $GenePredInitialState $GenePredOut
-    rm $GenePredIn"_tmp"
+    genePredView ${GenePredIn} "filter" ${MIN_IN_LEN} ${MIN_EX_LEN} ${RL} > ${GenePredInFiltered}
+    genePredView ${GenePredInFiltered} ${LOCUS} "cut" > ${GenePredInCut}
+    cp ${GenePredInCut} ${GenePredInitialState}
+    cp ${GenePredInitialState} ${GenePredOut}
 else
     # from the genome-wide annotation files, extract transcripts that 
     # (partially) overlap with the locus (remove transcripts that are identical     
     # in different annotations)
     # then: select $pK and $nK lines randomly from $GenePredInCut 
-    GenePredIn=$JOB_FOLDER"GenePredIn"
-    genePredView $GenePredReference $LOCUS "multiple_compressed" > $GenePredIn
-    genePredView $GenePredIn "filter" $MIN_IN_LEN $MIN_EX_LEN $RL > $GenePredInFiltered
-    genePredView $GenePredInFiltered $LOCUS "cut" > $GenePredInCut
-    select_lines_randomly $GenePredInCut $pK $nK > $GenePredInitialState
+    GenePredIn=${JOB_FOLDER}"GenePredIn"
+    genePredView ${GenePredReference} ${LOCUS} "multiple_compressed" > ${GenePredIn}
+    genePredView ${GenePredIn} "filter" ${MIN_IN_LEN} ${MIN_EX_LEN} ${RL} > ${GenePredInFiltered}
+    genePredView ${GenePredInFiltered} ${LOCUS} "cut" > ${GenePredInCut}
+    select_lines_randomly ${GenePredInCut} ${pK} ${nK} > ${GenePredInitialState}
 fi
 
-if [ ! -s $GenePredInitialState ]; then
+if [ ! -s ${GenePredInitialState} ]; then
     echo "ERROR: no annotated gene in locus" >&2
     exit 1
 fi
@@ -208,68 +200,68 @@ fi
 #      - if ($breakpoints==1) also discover junctions using FLLat. 
 #   Also write coverages.
 #-----------------------------------------------------------------------------------------
-JunctionsInFiltered=$JOB_FOLDER"JunctionOut"
-JunctionsInBeforeFiltering=$JOB_FOLDER"JunctionIn"
-coverages_file=$JOB_FOLDER"Coverage"
-SSfile=$JOB_FOLDER"SpliceSiteIn"
-SSfile_breakpoints=$JOB_FOLDER"BreakpointIn"
-SSfile_breakpoints_filtered=$JOB_FOLDER"BreakpointOut"
-BedOut=$JOB_FOLDER"BedOut"
+JunctionsInFiltered=${JOB_FOLDER}"JunctionOut"
+JunctionsInBeforeFiltering=${JOB_FOLDER}"JunctionIn"
+coverages_file=${JOB_FOLDER}"Coverage"
+SSfile=${JOB_FOLDER}"SpliceSiteIn"
+SSfile_breakpoints=${JOB_FOLDER}"BreakpointIn"
+SSfile_breakpoints_filtered=${JOB_FOLDER}"BreakpointOut"
+BedOut=${JOB_FOLDER}"BedOut"
 
-regionToBed $LOCUS > $BedOut
-Bed_v=( `cat $BedOut` )  
+regionToBed ${LOCUS} > ${BedOut}
+Bed_v=( `cat ${BedOut}` )  
 chr=${Bed_v[0]}    
 locusStart=${Bed_v[1]}
 locusEnd=${Bed_v[2]} 
-readfiles_v=(`echo $readfiles | tr "," "\n" `) 
+readfiles_v=(`echo ${readfiles} | tr "," "\n" `) 
 N=${#readfiles_v[@]}
 
-write_JunctionsIn readfiles_v[@] $chr $locusStart $locusEnd > $JunctionsInBeforeFiltering
-filter_JunctionsIn $JunctionsInBeforeFiltering $PERCENT_J $MINIMUM_J > $JunctionsInFiltered
-j_is_pos=`cat $JunctionsInFiltered | awk 'BEGIN{j_is_pos=0} {if ($4=="+") j_is_pos=1} END{print j_is_pos}'`
-j_is_neg=`cat $JunctionsInFiltered | awk 'BEGIN{j_is_neg=0} {if ($4=="-") j_is_neg=1} END{print j_is_neg}'`
-if [[ ($j_is_pos -eq 1 && $pK -eq 0) || ($j_is_neg -eq 1 && $nK -eq 0) ]];then
+write_JunctionsIn readfiles_v[@] ${chr} ${locusStart} ${locusEnd} > ${JunctionsInBeforeFiltering}
+filter_JunctionsIn ${JunctionsInBeforeFiltering} ${PERCENT_J} ${MINIMUM_J} > ${JunctionsInFiltered}
+j_is_pos=`cat ${JunctionsInFiltered} | awk 'BEGIN{j_is_pos=0} {if ($4=="+") j_is_pos=1} END{print j_is_pos}'`
+j_is_neg=`cat ${JunctionsInFiltered} | awk 'BEGIN{j_is_neg=0} {if ($4=="-") j_is_neg=1} END{print j_is_neg}'`
+if [[ (${j_is_pos} -eq 1 && ${pK} -eq 0) || (${j_is_neg} -eq 1 && ${nK} -eq 0) ]];then
     echo "WARNING: genes on both strands are expressed but only genes on one strand are annotated" >&2
 fi
 
-for (( rr=0;rr<$N;rr++ )); do
-    BamFile_long=${readfiles_v[$rr]}
-    BamFile=$JOB_FOLDER$rr".bam"
-    if [[ ! -e ${readfiles_v[$rr]} ]]; then
-        echo "ERROR: bam file $rr does not exist" >&2
+for (( rr=0;rr<${N};rr++ )); do
+    BamFile_long=${readfiles_v[${rr}]}
+    BamFile=${JOB_FOLDER}${rr}".bam"
+    if [[ ! -e ${readfiles_v[${rr}]} ]]; then
+        echo "ERROR: bam file ${rr} does not exist" >&2
         exit 1;
     fi
-    (${SAMTOOLS} view -H ${readfiles_v[$rr]} $LOCUS;
-            ${SAMTOOLS} view ${readfiles_v[$rr]} $LOCUS | \
-	    		awk -v lS="$locusStart" -v lE="$locusEnd" -v rl="$RL" '
+    (${SAMTOOLS} view -H ${readfiles_v[$rr]} ${LOCUS};
+            ${SAMTOOLS} view ${readfiles_v[$rr]} ${LOCUS} | \
+	    		awk -v lS="${locusStart}" -v lE="${locusEnd}" -v rl="${RL}" '
             {if ($4 > lS){  
                   if ($4 < lE - rl)
                      print           
-             }}') | ${SAMTOOLS} view -bhS - > $BamFile  
-    ${COVERAGEBED} -split -d -hist -abam $BamFile -b $BedOut | \
+             }}') | ${SAMTOOLS} view -bhS - > ${BamFile}  
+    ${COVERAGEBED} -split -d -hist -abam ${BamFile} -b ${BedOut} | \
         awk '{printf("%s ", $5)} 
         END{printf("\n")}'
-done > $coverages_file
-write_SSfile $GenePredInCut $JunctionsInFiltered > $SSfile
-if [[ $breakpoints -eq 1 ]];then
-    if (( $locusEnd - $locusStart < 100000 ));then
+done > ${coverages_file}
+write_SSfile ${GenePredInCut} ${JunctionsInFiltered} > ${SSfile}
+if [[ ${breakpoints} -eq 1 ]]; then
+    if (( ${locusEnd} - ${locusStart} < 100000 )); then
         echo "Inferring breakpoints using FLLat:"
-        echo Rscript $breakpoints_R $chr $locusStart $coverages_file $j_is_pos $j_is_neg \
-	     $MIN_EX_LEN $SSfile $SSfile_breakpoints $SSfile_breakpoints_filtered \
-	     $C $DELTA_J
-        Rscript $breakpoints_R $chr $locusStart $coverages_file $j_is_pos $j_is_neg \
-                $MIN_EX_LEN $SSfile $SSfile_breakpoints $SSfile_breakpoints_filtered \
-		         $C $DELTA_J
+        echo Rscript ${breakpoints_R} ${chr} ${locusStart} ${coverages_file} ${j_is_pos} ${j_is_neg} \
+	     ${MIN_EX_LEN} ${SSfile} ${SSfile_breakpoints} ${SSfile_breakpoints_filtered} \
+	     ${C} ${DELTA_J}
+        Rscript ${breakpoints_R} ${chr} ${locusStart} ${coverages_file} ${j_is_pos} ${j_is_neg} \
+                ${MIN_EX_LEN} ${SSfile} ${SSfile_breakpoints} ${SSfile_breakpoints_filtered} \
+		         ${C} ${DELTA_J}
     fi
-    (cat $SSfile;
-        if [[ -e $SSfile_breakpoints_filtered ]]; then
-            cat $SSfile_breakpoints_filtered;
+    (cat ${SSfile};
+        if [[ -e ${SSfile_breakpoints_filtered} ]]; then
+            cat ${SSfile_breakpoints_filtered};
             fi) | sort -r | \
                 sort -k 2,2 -k 3,3 -u -k 4,4n | \
-                sort > $SSfile"_tmp"
-    mv $SSfile"_tmp" $SSfile
+                sort > ${SSfile}"_tmp"
+    mv ${SSfile}"_tmp" ${SSfile}
 fi
-rm $BedOut
+rm ${BedOut}
 
 #-----------------------------------------------------------------------------------------
 #   WRITE COORDINATES
@@ -280,48 +272,48 @@ rm $BedOut
 #   positive and negative splice sites; splice sites found by the mapping method have 
 #   a directionality that can be inferred from the consensus splice sequence in the intron.
 #-----------------------------------------------------------------------------------------
-write_lists $LOCUS $locusStart $locusEnd $SSfile
+write_lists ${LOCUS} ${locusStart} ${locusEnd} ${SSfile}
 
 #-----------------------------------------------------------------------------------------
 #   Extract reads that fall in the locus from the bamfiles; 
 #   transform them into the reference coordinate basis;
 #   run altra and do timing
 #-----------------------------------------------------------------------------------------
-timeFile=$JOB_FOLDER"timeFile"
+timeFile=${JOB_FOLDER}"timeFile"
 tic
 echo "Running MCMC:"
-echo $src_altra $VERBOSE $C $RL $listCoordinate $listpos3 $listpos5 \
-   $listneg3 $listneg5 $MC_STEPS $MC_BURNIN $MC_EQ $MC_THIN $genePrediction \
-   $GenePredInitialState $JOB_FOLDER $chr $MIN_EX_LEN $MAX_EX_LEN $MIN_IN_LEN \
-   $MAX_IN_LEN $scale_junction_count_by $MU_E $VAR_E $SD_Q $VAR_L $Cc $Aa $Bb \
-   $utils
-(for (( rr=0;rr<$N;rr++ )); do
+echo ${src_altra} ${VERBOSE} ${C} ${RL} ${listCoordinate} ${listpos3} ${listpos5} \
+   ${listneg3} ${listneg5} ${MC_STEPS} ${MC_BURNIN} ${MC_EQ} ${MC_THIN} ${genePrediction} \
+   ${GenePredInitialState} ${JOB_FOLDER} ${chr} ${MIN_EX_LEN} ${MAX_EX_LEN} ${MIN_IN_LEN} \
+   ${MAX_IN_LEN} ${scale_junction_count_by} ${MU_E} ${VAR_E} ${SD_Q} ${VAR_L} ${Cc} ${Aa} ${Bb} \
+   ${utils} ${OVERHANG}
+(for (( rr=0;rr<${N};rr++ )); do
     echo "m"
-    ${SAMTOOLS} view $JOB_FOLDER$rr".bam" |\
-       awk -v _lC="$listCoordinate" -f $utils_awk --source ' 
+    ${SAMTOOLS} view ${JOB_FOLDER}${rr}".bam" |\
+       awk -v _lC="${listCoordinate}" -f ${utils_awk} --source ' 
        BEGIN{C = split(_lC, lC_v, ",")}  
        {sam2bitset(lC_v, C)}' 
 done;
-echo "e") | $src_altra $VERBOSE $C $RL $listCoordinate $listpos3 $listpos5 \
-   $listneg3 $listneg5 $MC_STEPS $MC_BURNIN $MC_EQ $MC_THIN $genePrediction \
-   $GenePredInitialState $JOB_FOLDER $chr $MIN_EX_LEN $MAX_EX_LEN $MIN_IN_LEN \
-   $MAX_IN_LEN $scale_junction_count_by $MU_E $VAR_E $SD_Q $VAR_L $Cc $Aa $Bb \
-   $utils >> $logFile
+echo "e") | ${src_altra} ${VERBOSE} ${C} ${RL} ${listCoordinate} ${listpos3} ${listpos5} \
+   ${listneg3} ${listneg5} ${MC_STEPS} ${MC_BURNIN} ${MC_EQ} ${MC_THIN} ${genePrediction} \
+   ${GenePredInitialState} ${JOB_FOLDER} ${chr} ${MIN_EX_LEN} ${MAX_EX_LEN} ${MIN_IN_LEN} \
+   ${MAX_IN_LEN} ${scale_junction_count_by} ${MU_E} ${VAR_E} ${SD_Q} ${VAR_L} ${Cc} ${Aa} ${Bb} \
+   ${utils} ${OVERHANG} >> ${logFile}
 tac
-echo "time" `print_tic_tac | awk '{print $1/60" min"'}` > $timeFile
+echo "time" `print_tic_tac | awk '{print $1/60" min"'}` > ${timeFile}
 
 #-----------------------------------------------------------------------------------------
 #   Plot
 #-----------------------------------------------------------------------------------------
 echo "Plotting results:"
-echo Rscript $altra_R $locusStart $locusEnd $N $RL $OVERHANG $C $JOB_FOLDER $VERBOSE 
-try Rscript $altra_R $locusStart $locusEnd $N $RL $OVERHANG $C $JOB_FOLDER $VERBOSE
+echo Rscript ${altra_R} ${locusStart} ${locusEnd} ${N} ${RL} ${OVERHANG} ${C} ${JOB_FOLDER} ${VERBOSE} 
+try Rscript ${altra_R} ${locusStart} ${locusEnd} ${N} ${RL} ${OVERHANG} ${C} ${JOB_FOLDER} ${VERBOSE}
 
 #-----------------------------------------------------------------------------------------
 #   Clean
 #-----------------------------------------------------------------------------------------
-for (( rr=0;rr<$N;rr++ )); do
-    rm $JOB_FOLDER$rr".bam"
-done
-rm $coverages_file
+#for (( rr=0;rr<${N};rr++ )); do
+#   rm ${JOB_FOLDER}${rr}".bam"
+#done
+#rm ${coverages_file}
 

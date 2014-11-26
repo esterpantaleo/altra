@@ -11,7 +11,7 @@ readTable <- function(GenePredIn){
 
 readTableNumbers <- function(ExprOut){
     if (!file.exists(ExprOut))
-                print(paste("ERROR: file", GenePredIn, "does not exist"))
+        print(paste("ERROR: file", GenePredIn, "does not exist"))
     return(as.matrix(data.frame(lapply(read.table(ExprOut,
                                                   fill=1,
                                                   comment.char="",
@@ -27,7 +27,7 @@ get_exons_start_end <- function(transcript){
 }
 
 plotGenePred <- function(GenePredOut, GenePredIn=NULL, plotStart=NULL, plotEnd=NULL, is_xaxis=1, title=NULL, Expr_v=NULL, listCoordinate=NULL, cex.axis=1){
-                                        # get data
+    # get data
     if (!is.null(GenePredIn)){
         if (!file.exists(GenePredIn))
             print(paste("ERROR: file", GenePredIn, "does not exist"))
@@ -54,14 +54,14 @@ plotGenePred <- function(GenePredOut, GenePredIn=NULL, plotStart=NULL, plotEnd=N
              ylab="",
              font.main=1)
         
-                                        #plot axis
+        #plot axis
         if (is_xaxis==1){
             if (!is.null(listCoordinate)){
                 axis(1,
                      at=listCoordinate,
                      lab=0:(length(listCoordinate)-1),
                      cex.axis=cex.axis)
-                                        #par(tck=tck)
+                #par(tck=tck)
                 abline(v=listCoordinate)
             }else{
                 tck=axTicks(1)
@@ -117,80 +117,78 @@ plotGenePred <- function(GenePredOut, GenePredIn=NULL, plotStart=NULL, plotEnd=N
     }
 }
 
-                                        #given a genepred file and a vector of expressions for each of the transcripts, plot the coverage
+#' Given a genePred file and a vector of expressions for each of the transcripts, plot the coverage
 pred2coverage <- function(GenePredOut, indExprOut, locusStart, locusEnd, RL, M){
-    h                 <- rep(0, locusEnd - locusStart + 1)
+    h           <- rep(0, locusEnd - locusStart + 1)
     if (file.info(GenePredOut)$size == 0) return(h);
-    Transcripts       <- readTable(GenePredOut)
-    nr                <- nrow(Transcripts)
+    Transcripts <- readTable(GenePredOut)
+    nr          <- nrow(Transcripts)
     for (k in 1:nr){
         trans  <- get_exons_start_end(Transcripts[k,])
         E      <- length(trans$exst)
         
 ###################################################################
-                                        #  exst and exen are exon start and exon end in genomic coordinates (1-based)
-                                        #  ExSt is exon start in transcriptome coordinates (1-based)
-                                        #  cumInLength are cumulative intron lengths 
+#  exst and exen are exon start and exon end in genomic coordinates (1-based)
+#  ExSt is exon start in transcriptome coordinates (1-based)
+#  cumInLength are cumulative intron lengths 
 ###################################################################
         cumInLength  <- (cumsum(c(trans$exst, 0) - c(-1, trans$exen) - 1) - trans$exst[1])[1:E]
         ExSt         <- cumsum(c(1, trans$exen - trans$exst + 1))
         
 #################################################################
-                                        #  hh[x] is the coverage at position x in transcriptome coordinates
+#  hh[x] is the coverage at position x in transcriptome coordinates
 #################################################################
         hh          <- rep(0, ExSt[E + 1] - 1)
         Expression  <- as.numeric(indExprOut[k])
         if (Expression == 0) 
             next;
-		    #for each exon j
+        #for each exon j
         for (j in 1:E){
 ###############coverage from reads with no junctions
-            if (ExSt[j] < ExSt[j + 1] - RL){
+            if (ExSt[j] < ExSt[j + 1] - RL)
                 for (x in ExSt[j]:(ExSt[j + 1] - RL))
                     hh[x:(x+RL-1)] <- hh[x:(x+RL-1)] + Expression
-            }
 ###############coverage from reads with junctions
             if (j != E){
                 if (ExSt[j + 1] - ExSt[j] > M){
-                                                for (x in max(ExSt[j], ExSt[j + 1] - RL + M):(ExSt[j + 1] - M - 1)){ 
-                                                    read   <- ExSt[j + 1] - x
-                                                          read_v <- read
-                                                    rest   <- RL - read
-                                                    for (jj in (j + 1):E){
-                                                        read   <- min(rest, ExSt[jj + 1] - ExSt[jj])
-                                                        read_v <- c(read_v, read)
-                                                        rest   <- rest - read
-                                                                   if (rest <= 0)
-								       break;
-                                                          }
-                                                    if (rest > 0 || any(read_v < M)){
-                                                        #print(rest)
-                                                        #print(read_v) 
-                                                        break;
-                                                    }
-                                                    ##else
-                                                    hh[x:(x+RL-1)] <- hh[x:(x+RL-1)] + Expression
-                                                }
-                                            }
+                    for (x in max(ExSt[j], ExSt[j + 1] - RL + M):(ExSt[j + 1] - M - 1)){ 
+                        read   <- ExSt[j + 1] - x
+                        read_v <- read
+                        rest   <- RL - read
+                        for (jj in (j + 1):E){
+                            read   <- min(rest, ExSt[jj + 1] - ExSt[jj])
+                            read_v <- c(read_v, read)
+                            rest   <- rest - read
+                            if (rest <= 0)
+                                break;
+                        }
+                        if (rest > 0 || any(read_v < M)){
+                                        #print(rest)
+                                        #print(read_v) 
+                            break;
+                        }
+                        ##else
+                        hh[x:(x+RL-1)] <- hh[x:(x+RL-1)] + Expression
+                    }
+                }
             }
         }
-
+        
 #################################################################
-                                        #  transform from transcriptome coordinates (x) (hh) to reference coordinates (y) (h)
+#  transform from transcriptome coordinates (x) (hh) to reference coordinates (y) (h)
 #################################################################
         for (j in 1:E){
             x <- ExSt[j]:(ExSt[j+1]-1)
             y <- x + cumInLength[j] + trans$exst[1] - locusStart
-			      h[y] <- h[y] + hh[x]
+            h[y] <- h[y] + hh[x]
         }
     } 
     return(h)
 }
 
-#plot coverage of one sample given number of reads that start at each base (individualCoverages)
-plotCov <- function(individualCoverages, locusStart, locusEnd, my_title){
+#' Plot coverage of one sample given number of reads that start at each base (individualCoverages)
+plotCov <- function(individualCoverages, locusStart, locusEnd, my_title, ylim){
     l       <- length(individualCoverages)
-    plotMax <- max(individualCoverages)
     plot(locusStart:(locusStart + l - 1),
          individualCoverages,
          lwd=0.1,
@@ -202,34 +200,33 @@ plotCov <- function(individualCoverages, locusStart, locusEnd, my_title){
          xlab = "",
          ylab = "",
          xlim=range(c(locusStart, locusStart + l - 1)),
-         ylim=c(0, plotMax))
+         ylim=ylim)
     axis(2, pos=locusStart)
 }
     
 plotCoverage <- function(GenePredOut, individualExprOut, locusStart, locusEnd, RL, M, my_title, individualCoverages){	
     l       <- length(individualCoverages)
-    plotMax <- max(individualCoverages)
-                                           #plot coverage from bam files
-    plotCov(individualCoverages, locusStart, locusEnd, my_title)
-    
-    #plot predictive
+
+    predCov <- pred2coverage(GenePredOut, individualExprOut, locusStart, locusEnd, RL, M)
+    ylim    <- c(0,max(c(predCov,individualCoverages)))
+    #plot coverage from bam files
+    plotCov(individualCoverages, locusStart, locusEnd, my_title, ylim)
     par(new=TRUE)
-    predCov      <- pred2coverage(GenePredOut, individualExprOut, locusStart, locusEnd, RL, M)
+    #plot predictive
     plot(locusStart:(locusStart + length(predCov) - 1), 
          predCov, 
          lwd=0.5,
          col="red",
          axes="F", 
          type="l", 
-         xlab = "", 
-         ylab = "", 
+         xlab="", 
+         ylab="", 
          xlim=range(c(locusStart, locusStart + l - 1)), 
-         ylim=c(0, plotMax))
-   
-   covDiff=abs(individualCoverages-predCov[1:length(individualCoverages)])
-   toreturn=sum(covDiff)
-   
-   return(toreturn/sum(individualCoverages))
+         ylim=ylim)
+    
+    covDiff <- abs(individualCoverages-predCov[1:length(individualCoverages)])
+       
+    return(sum(covDiff)/sum(individualCoverages))
 }
 
 plotCoverageFromBam <- function(bamfile, chr, locusStart, locusEnd, my_title){
@@ -238,47 +235,45 @@ plotCoverageFromBam <- function(bamfile, chr, locusStart, locusEnd, my_title){
 }
 
 
-                                        #============= FUNCTION =======================================================================================  
-                                        #         NAME:     plotJunctions
-                                        #  DESCRIPTION:     given the JunctionFile load the counts (from column 5 to ncol)
-                                        #                   and the strands (from col 4)
-                                        #                   chr12 114455 114567 + 4 4 5 4 1 18
-                                        #                   chr12 114510 114567 + 1 1 2 0 0 4
-                                        #                   load it
-                                        #   ARGUMENT 1:     junction_counts (see above)
-                                        #   ARGUMENT 2:     strands
-                                        #   ARGUMENT 3:     i (which column to read in matrix junctions: column i + 4) the individual
-                                        #==============================================================================================================
+#' plotJunctions
+#'
+#' Given the JunctionFile (a row in this file looks like "chr12 114455 114567 + 4 4 54 1 18") load counts (from column 5 to ncol) and strand (from col 4).
+#' @param junction_counts
+#' @param strands
+#' @param positions
+#' @param i: the individual (the column number in the matrix)
+#' @param plotStart
+#' @param plotEnd
 plotJunctions <- function(junction_counts, strands, positions, i, plotStart, plotEnd){	 
     if (!is.null(junction_counts)){
-        nr <- nrow(junction_counts);
+        nr        <- nrow(junction_counts);
         max_count <- max(junction_counts)
         plot("NA", 
-             xlim = c(plotStart, plotEnd), 
-             ylim = c(0, 1), 
-                        axes = F, 
-             ylab = "", 
-             xlab = "")
-                   for (j in 1:nr){
-                       y <- (nr + 1 - j) / (nr+1)
-                       
-                       if (strands[j]=="+")
-                           clr="blue"
-                       if (strands[j]=="-")
-                           clr="red"
-                       line_width <- junction_counts[j, i]*10/max_count 
-                       lines(c(as.numeric(positions[j, 1]), as.numeric(positions[j, 2])), 
-                             c(y, y),
-                             col = clr, 
-                             lwd = line_width,
-                             lend=1) #line end type (0 is round)
-                       text(x = as.numeric(positions[j, 1]), 
-                            y = y + 0.02, 
-                            labels = junction_counts[j, i], 
-                            cex=0.5, 
-                            pos=2, 
-                            offset=0)
-                   }
+             xlim=c(plotStart, plotEnd), 
+             ylim=c(0, 1), 
+             axes=F, 
+             ylab="", 
+             xlab="")
+        for (j in 1:nr){
+            y <- (nr + 1 - j) / (nr+1)
+            
+            if (strands[j]=="+")
+                clr="blue"
+            if (strands[j]=="-")
+                clr="red"
+            line_width <- junction_counts[j, i]*10/max_count 
+            lines(c(as.numeric(positions[j, 1]), as.numeric(positions[j, 2])), 
+                  c(y, y),
+                  col = clr, 
+                  lwd = line_width,
+                  lend=1) #line end type (0 is round)
+            text(x = as.numeric(positions[j, 1]), 
+                 y = y + 0.02, 
+                 labels = junction_counts[j, i], 
+                 cex=0.5, 
+                 pos=2, 
+                 offset=0)
+        }
     }else plot(1, type="n", axes=F, xlab="", ylab="", xlim = c(plotStart, plotEnd))
 }
 
@@ -287,21 +282,22 @@ plotBreakpoints <- function(breakpoints_file, plotStart, plotEnd){
         breakpoints <- readTable(breakpoints_file)
         breakpoints <- subset(breakpoints, !duplicated(breakpoints[,4])) 
         nr <- nrow(breakpoints)
-                  if (nr > 0){
-                      plot("NA", 
-                           xlim = c(plotStart,plotEnd), 
-                           ylim = c(0, 1), 
-                           axes = F, 
-                           ylab = "", 
-                           xlab = "")
-                      for (j in 1:nr){
-                          y          <- (nr + 1 - j)/(nr+1)
-                          coordinate <- as.numeric(breakpoints[j, 4])
-                          if (breakpoints[j, 3] == "3SS")
-                                                arrows(coordinate - 10, y, coordinate, y, length = 0.05) 
-                          else if (breakpoints[j, 3] == "5SS")
-                              arrows(coordinate + 10, y, coordinate, y, length = 0.05)
-                      }
-                  }
-         }else plot(1, type="n", axes=F, xlab="", ylab="", xlim = c(plotStart, plotEnd))
+        if (nr > 0){
+            plot("NA", 
+                 xlim=c(plotStart,plotEnd), 
+                 ylim=c(0, 1), 
+                 axes=F, 
+                 ylab="", 
+                 xlab="")
+            for (j in 1:nr){
+                y          <- (nr + 1 - j)/(nr+1)
+                coordinate <- as.numeric(breakpoints[j, 4])
+                if (breakpoints[j, 3] == "3SS")
+                    arrows(coordinate - 10, y, coordinate, y, length = 0.05) 
+                else if (breakpoints[j, 3] == "5SS")
+                    arrows(coordinate + 10, y, coordinate, y, length = 0.05)
+            }
+        }
+    }else plot(1, type="n", axes=F, xlab="", ylab="", xlim = c(plotStart, plotEnd))
 }
+    
