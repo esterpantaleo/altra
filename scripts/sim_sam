@@ -72,7 +72,7 @@ sim_sam=$BASEDIR"/../src/sim_sam"
 help(){
     echo -e "\
 sim_sam generates a simulated bam file.
-sim_sam generates reads of a specific length (specified by option -R) for a sample as if they were emitted by the list of transcripts provided in GenePred file (specified with option -g) in a region specified with option -L. The intensity of expression for each sample must be specified (use option -m).
+sim_sam generates reads of a specific length (specified by option -R) for a sample as if they were emitted by the list of transcripts provided in GenePred file (specified with option -g) in a region specified with option -L. The intensity of expression for each sample must be specified (using option -m).
 
 usage: $0 options
        OPTIONS:

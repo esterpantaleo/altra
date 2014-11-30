@@ -2,7 +2,8 @@
 
 This repository contains **altra**, a **software implementing a Bayesian method
 for simultaneous transcript reconstruction and abundance estimation with 
-RNA-Seq data in multiple samples**.
+RNA-Seq data in multiple samples**. It also contains **sim_sam**, a software
+to simulate RNA-Seq data in bam format.
 
 **altra** is free software, you can redistribute it and/or modify it under
 the terms of the GNU General Public License.
@@ -41,3 +42,6 @@ To print the usage run **altra** with option `-h`:
 
     altra -h
 
+or run **sim_sam** with option `-h`:
+
+    sim_sam -h
