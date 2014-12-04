@@ -1052,8 +1052,8 @@ function help () {
     msg+="BED format: see http://genome.ucsc.edu/FAQ/FAQformat.html#format1\n"
     msg+="BAM format: see http://genome.ucsc.edu/FAQ/FAQformat.html#format5.1 Note: reads that map with junctions must have the XS attribute tag as in Tophat output.\n"
     msg+="\n"
-    msg+="summary.txt This file contains the list of explored gene models (in a format internal to altra) with the posterior percentage probability of each gene model. Function bitset2GenePred in utils.sh can be used to convert a line of summary.txt into a GenePred file.\n"
-    msg+="ExprOut contains a N by 2*(pK+nK+1) table with estimated posterior mean and standard deviation for lambda and epsilon. Even columns contain the posterior mean for each transcript, odd colums contain the posterior standard deviation for each transcipt, the first 2*(pK+nK) columns report lambda, the last two columns report epsilon. Different samples are reported on different lines.\n"    
+    msg+="summary.txt This file contains the list of explored gene models. Specifically, each line refers to a gene model; the first field is the gene model in  a format internal to altra, the second field is the log-likelihood of the gene model, the third field is the posterior frequency of the gene model. Function bitset2GenePred in utils.sh can be used to convert a line of summary.txt into a GenePred file.\n"
+    msg+="ExprOut This file contains a N by 2*(pK+nK+1) table with estimated posterior mean and standard deviation for lambda and epsilon. Even columns contain the posterior mean for each transcript, odd colums contain the posterior standard deviation for each transcipt, the first 2*(pK+nK) columns report lambda, the last two columns report epsilon. Different samples are reported on different lines.\n"    
     echo -e "$msg" 
 }
 

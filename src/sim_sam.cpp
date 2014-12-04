@@ -1,4 +1,4 @@
-/** \file sim_sam.cpp
+1;2c/** \file sim_sam.cpp
  *
 
  * Copyright (C) 2012-2013 Ester Pantaleo
